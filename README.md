@@ -1,2 +1,1 @@
-# Cpp-memorandum
-C++ memorandum
+# memorandum
