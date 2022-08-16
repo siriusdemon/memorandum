@@ -3,7 +3,7 @@
 Commit https://github.com/rui314/chibicc/tree/f26c8c26aae80d8a436677df86ca0856370e1ecc
 
 
-At this pointer, only int and int* is available.
+At this point, only int and int* is available.
 
 The AST structure is clear.
 
