@@ -1,34 +1,34 @@
 #include "chibicc.h"
 
-Type *ty_int = &(Type){TY_INT, 8};
+Type* ty_int = &(Type){TY_INT, 8};
 
-bool is_integer(Type *ty) {
+bool is_integer(Type* ty) {
   return ty->kind == TY_INT;
 }
 
-Type *copy_type(Type *ty) {
-  Type *ret = calloc(1, sizeof(Type));
+Type* copy_type(Type* ty) {
+  Type* ret = calloc(1, sizeof(Type));
   *ret = *ty;
   return ret;
 }
 
-Type *pointer_to(Type *base) {
-  Type *ty = calloc(1, sizeof(Type));
+Type* pointer_to(Type* base) {
+  Type* ty = calloc(1, sizeof(Type));
   ty->kind = TY_PTR;
   ty->size = 8;
   ty->base = base;
   return ty;
 }
 
-Type *func_type(Type *return_ty) {
-  Type *ty = calloc(1, sizeof(Type));
+Type* func_type(Type* return_ty) {
+  Type* ty = calloc(1, sizeof(Type));
   ty->kind = TY_FUNC;
   ty->return_ty = return_ty;
   return ty;
 }
 
-Type *array_of(Type *base, int len) {
-  Type *ty = calloc(1, sizeof(Type));
+Type* array_of(Type* base, int len) {
+  Type* ty = calloc(1, sizeof(Type));
   ty->kind = TY_ARRAY;
   ty->size = base->size * len;
   ty->base = base;
@@ -36,7 +36,7 @@ Type *array_of(Type *base, int len) {
   return ty;
 }
 
-void add_type(Node *node) {
+void add_type(Node* node) {
   if (!node || node->ty)
     return;
 
@@ -48,9 +48,9 @@ void add_type(Node *node) {
   add_type(node->init);
   add_type(node->inc);
 
-  for (Node *n = node->body; n; n = n->next)
+  for (Node* n = node->body; n; n = n->next)
     add_type(n);
-  for (Node *n = node->args; n; n = n->next)
+  for (Node* n = node->args; n; n = n->next)
     add_type(n);
 
   switch (node->kind) {

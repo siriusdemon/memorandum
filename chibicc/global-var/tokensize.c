@@ -1,10 +1,10 @@
 #include "chibicc.h"
 
 // Input string
-static char *current_input;
+static char* current_input;
 
 // Reports an error and exit.
-void error(char *fmt, ...) {
+void error(char* fmt, ...) {
   va_list ap;
   va_start(ap, fmt);
   vfprintf(stderr, fmt, ap);
@@ -13,7 +13,7 @@ void error(char *fmt, ...) {
 }
 
 // Reports an error location and exit.
-static void verror_at(char *loc, char *fmt, va_list ap) {
+static void verror_at(char* loc, char* fmt, va_list ap) {
   int pos = loc - current_input;
   fprintf(stderr, "%s\n", current_input);
   fprintf(stderr, "%*s", pos, ""); // print pos spaces.
@@ -23,32 +23,32 @@ static void verror_at(char *loc, char *fmt, va_list ap) {
   exit(1);
 }
 
-void error_at(char *loc, char *fmt, ...) {
+void error_at(char* loc, char* fmt, ...) {
   va_list ap;
   va_start(ap, fmt);
   verror_at(loc, fmt, ap);
 }
 
-void error_tok(Token *tok, char *fmt, ...) {
+void error_tok(Token* tok, char* fmt, ...) {
   va_list ap;
   va_start(ap, fmt);
   verror_at(tok->loc, fmt, ap);
 }
 
 // Consumes the current token if it matches `op`.
-bool equal(Token *tok, char *op) {
+bool equal(Token* tok, char* op) {
   return strlen(op) == tok->len &&
          !strncmp(tok->loc, op, tok->len);
 }
 
 // Ensure that the current token is `op`.
-Token *skip(Token *tok, char *op) {
+Token* skip(Token* tok, char* op) {
   if (!equal(tok, op))
     error_tok(tok, "expected '%s'", op);
   return tok->next;
 }
 
-bool consume(Token **rest, Token *tok, char *str) {
+bool consume(Token** rest, Token* tok, char* str) {
   if (equal(tok, str)) {
     *rest = tok->next;
     return true;
@@ -58,8 +58,8 @@ bool consume(Token **rest, Token *tok, char *str) {
 }
 
 // Create a new token and add it as the next token of `cur`.
-static Token *new_token(TokenKind kind, Token *cur, char *str, int len) {
-  Token *tok = calloc(1, sizeof(Token));
+static Token* new_token(TokenKind kind, Token* cur, char* str, int len) {
+  Token* tok = calloc(1, sizeof(Token));
   tok->kind = kind;
   tok->loc = str;
   tok->len = len;
@@ -67,7 +67,7 @@ static Token *new_token(TokenKind kind, Token *cur, char *str, int len) {
   return tok;
 }
 
-static bool startswith(char *p, char *q) {
+static bool startswith(char* p, char* q) {
   return strncmp(p, q, strlen(q)) == 0;
 }
 
@@ -81,8 +81,8 @@ static bool is_ident2(char c) {
   return is_ident1(c) || ('0' <= c && c <= '9');
 }
 
-static bool is_keyword(Token *tok) {
-  static char *kw[] = {
+static bool is_keyword(Token* tok) {
+  static char* kw[] = {
     "return", "if", "else", "for", "while", "int", "sizeof",
   };
 
@@ -92,17 +92,17 @@ static bool is_keyword(Token *tok) {
   return false;
 }
 
-static void convert_keywords(Token *tok) {
-  for (Token *t = tok; t->kind != TK_EOF; t = t->next)
+static void convert_keywords(Token* tok) {
+  for (Token* t = tok; t->kind != TK_EOF; t = t->next)
     if (is_keyword(t))
       t->kind = TK_RESERVED;
 }
 
 // Tokenize a given string and returns new tokens.
-Token *tokenize(char *p) {
+Token* tokenize(char* p) {
   current_input = p;
   Token head = {};
-  Token *cur = &head;
+  Token* cur = &head;
 
   while (*p) {
     // Skip whitespace characters.
@@ -114,7 +114,7 @@ Token *tokenize(char *p) {
     // Numeric literal
     if (isdigit(*p)) {
       cur = new_token(TK_NUM, cur, p, 0);
-      char *q = p;
+      char* q = p;
       cur->val = strtoul(p, &p, 10);
       cur->len = p - q;
       continue;
@@ -122,7 +122,7 @@ Token *tokenize(char *p) {
 
     // Identifier or keyword
     if (is_ident1(*p)) {
-      char *q = p++;
+      char* q = p++;
       while (is_ident2(*p))
         p++;
       cur = new_token(TK_IDENT, cur, q, p - q);
