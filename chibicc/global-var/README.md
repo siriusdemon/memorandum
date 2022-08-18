@@ -13,7 +13,7 @@ compare to pointer, at this stage, the following features is added:
 
 ### 1. Lexer
 
-`tokensize.c`
+`tokenize.c`
 
 Only two modifications: a new function `consume`, two keywords including `sizeof`, `int`.
 

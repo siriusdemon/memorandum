@@ -10,9 +10,9 @@ The AST structure is clear.
 
 ### 1. Lexer
 
-There is no lexer, but `tokensize` in `tokensize.c`.
+There is no lexer, but `tokenize` in `tokenize.c`.
 
-Function `tokensize` saves the input to a static variable `current_input`. Then creates an empty Token `head`. So `head.next`, the returned value, is the first token of input stream. 
+Function `tokenize` saves the input to a static variable `current_input`. Then creates an empty Token `head`. So `head.next`, the returned value, is the first token of input stream. 
 
 The main process starts from line:96. Firstly, all space is skipped (line:98-100). At line:104, token of NUM is built. `new_token` create a new token, make it as `cur->next`, and return the new token. `strtoul` will parse a number and move `p` forward, so the length of token can be computed. 
 
