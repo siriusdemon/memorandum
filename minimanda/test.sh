@@ -29,5 +29,7 @@ assert 42 "(* 2 3 7)"
 assert 42 "(+ 1 2 3 4 5 6 7 (* 1 2 7))"
 assert 3 "1 2 3"
 assert 42 "(+ 1 2 3) (* 6 7)"
+assert 42 "(let a 42) a"
+assert 32 "(let a 42) (let b 10) (- a b)"
 
 echo OK

@@ -49,6 +49,41 @@ Token* skip(Token* tok, char* s) {
   return tok->next;
 }
 
+
+static bool is_ident1(char c) {
+  return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || c == '_' || c == '-' 
+      || c == '+' || c == '<' || c == '>' || c == '%' || c == '$';
+}
+
+// Returns true if c is valid as a non-first character of an identifier.
+static bool is_ident2(char c) {
+  return is_ident1(c) || ('0' <= c && c <= '9') || c == '*' || c == '/' || c == '?' 
+      || c == '!' || c == '^' || c == '=';
+}
+
+static bool is_keyword(Token* tok) {
+  static char *kw[] = {"let", "const", "set", "do", "def", "lambda", "if", "iset", "iget", 
+    "while", "asm", "defstruct", "defenum", "match", "deftype", "defmodule", "import", 
+    "export", "async", "defasync", "await", "defmacro", "with",
+  };
+
+  for (int i = 0; i < sizeof(kw) / sizeof(*kw); i++)
+    if (equal(tok, kw[i]))
+      return true;
+  return false;
+}
+
+static bool is_primitive(Token* tok) {
+  static char *kw[] = {"+", "-", "*", "/", "<", ">=", "<=", "=", "and", "or",
+    "not", "xor", "sra", "srl", "sll", "bitand", "bitor", "bitnot", "bitxor",
+  };
+  for (int i = 0; i < sizeof(kw) / sizeof(*kw); i++)
+    if (equal(tok, kw[i]))
+      return true;
+  return false;
+}
+
+
 // Ensure that the current token is TK_NUM.
 static int get_number(Token* tok) {
   if (tok->kind != TK_NUM)
@@ -65,6 +100,13 @@ static Token* new_token(TokenKind kind, Token* cur, char* str, int len) {
   cur->next = tok;
   return tok;
 }
+
+void correct_tokens(Token* tok) {
+  for (Token *t = tok; t->kind != TK_EOF; t = t->next)
+    if (is_keyword(t) || is_primitive(t))
+      t->kind = TK_RESERVED;
+}
+
 
 // Tokenize `p` and returns new tokens.
 Token* tokenize(char* p) {
@@ -109,6 +151,16 @@ Token* tokenize(char* p) {
       continue;
     }
 
+    // Identifier, some operators and keywords may be collected as identifier.
+    // function `correct_token` corrects this.
+    if (is_ident1(*p)) {
+      char *q = p++;
+      while (is_ident2(*p))
+        p++;
+      cur = new_token(TK_IDENT, cur, q, p - q);
+      continue;
+    }
+
     // Punctuator
     if (*p == '+' || *p == '-' || *p == '*' || *p == '/') {
       cur = new_token(TK_RESERVED, cur, p++, 1);
@@ -119,5 +171,6 @@ Token* tokenize(char* p) {
   }
 
   new_token(TK_EOF, cur, p, 0);
+  correct_tokens(head.next);
   return head.next;
 }

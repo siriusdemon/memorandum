@@ -9,6 +9,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+
+
 // 
 // tokenize.c
 //
@@ -20,6 +22,8 @@ typedef enum {
   TK_RPAREN,    // )
   TK_LBRACKET,  // [
   TK_RBRACKET,  // ]
+  TK_LET,       // keyword let
+  TK_IDENT,     // identifier
 } TokenKind;
 
 // Token type
@@ -44,16 +48,21 @@ void error_tok(Token* tok, char* fmt, ...);
 //
 // parse.c
 //
+typedef struct Var Var;
+typedef struct Node Node;
+typedef struct Function Function;
+
 typedef enum {
   ND_ADD,         // +
   ND_SUB,         // -
   ND_MUL,         // *
   ND_DIV,         // /
   ND_NUM,         // integer
+  ND_VAR,         // variable
+  ND_LET,         // let
 } NodeKind;
 
 
-typedef struct Node Node;
 struct Node {
   NodeKind kind;
   Token* tok;
@@ -65,13 +74,29 @@ struct Node {
   // binary
   Node* lhs;
   Node* rhs;
+
+  // var
+  Var* var;
 };
 
-Node* parse(Token*);
+struct Var {
+  Var* next;
+  char* name;
+  int offset;
+};
+
+struct Function {
+  Node *body;
+  Var *locals;
+  int stack_size;
+}; 
+
+
+Function* parse(Token*);
 
 
 //
 // codegen.c
 //
-void codegen(Node* node);
+void codegen(Function* node);
 #endif

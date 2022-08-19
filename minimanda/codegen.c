@@ -13,9 +13,42 @@ static void pop(char *arg) {
   depth--;
 }
 
+static int align_to(int n, int align) {
+  return (n + align - 1) / align * align;
+}
+
+static void gen_addr(Node *node) {
+  if (node->kind == ND_VAR) {
+    printf("  lea %d(%%rbp), %%rax\n", node->var->offset);
+    return;
+  }
+}
+
+// Assign offsets to local variables.
+static void assign_lvar_offsets(Function *prog) {
+  int offset = 0;
+  for (Var *var = prog->locals; var; var = var->next) {
+    offset += 8;
+    var->offset = -offset;
+  }
+  prog->stack_size = align_to(offset, 16);
+}
+
 static void gen_expr(Node *node) {
-  if (node->kind == ND_NUM) {
+  switch(node->kind) {
+  case ND_LET:
+    gen_addr(node->lhs);
+    push();
+    gen_expr(node->rhs);
+    pop("%rdi");
+    printf("  mov %%rax, (%%rdi)\n");
+    return;
+  case ND_NUM:
     printf("  mov $%d, %%rax\n", node->val);
+    return;
+  case ND_VAR:
+    gen_addr(node);
+    printf("  mov (%%rax), %%rax\n");
     return;
   }
 
@@ -43,15 +76,22 @@ static void gen_expr(Node *node) {
   error("invalid expression");
 }
 
-void codegen(Node* node) {
+void codegen(Function* prog) {
+  assign_lvar_offsets(prog);
   printf("  .globl main\n");
   printf("main:\n");
 
+  // Prologue
+  printf("  push %%rbp\n");
+  printf("  mov %%rsp, %%rbp\n");
+  printf("  sub $%d, %%rsp\n", prog->stack_size);
   // Traverse the AST to emit assembly.
-  for (; node; node = node->next) {
+  for (Node* node = prog->body; node; node = node->next) {
     gen_expr(node);
+    assert(depth == 0);
   }
+  printf("  mov %%rbp, %%rsp\n");
+  printf("  pop %%rbp\n");
   printf("  ret\n");
 
-  assert(depth == 0);
 }
