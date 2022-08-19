@@ -36,7 +36,7 @@ static Node* parse_list(Token** rest, Token* tok, Node* cur) {
   } else if (equal(tok, "/")) {
     kind = ND_DIV;
   } else {
-    error("invalid operation");
+    error_tok(tok, "invalid operation");
   }
   tok = tok->next;
   Node tmp;
@@ -71,7 +71,7 @@ static Node* parse_expr(Token** rest, Token *tok, Node* cur) {
     return cur;
   }
 
-  error("Invalid code!");
+  error_tok(tok, "Invalid code!");
 }
 
 Node* parse(Token* tok) {

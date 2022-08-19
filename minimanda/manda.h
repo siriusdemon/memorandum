@@ -33,10 +33,13 @@ struct Token {
 };
 
 
-Token* tokenize(char*);
-void error(char*, ...);
 bool equal(Token*, char*);
 Token* skip(Token*, char*);
+Token* tokenize(char*);
+
+void error(char*, ...);
+void error_at(char* loc, char* fmt, ...);
+void error_tok(Token* tok, char* fmt, ...);
 
 //
 // parse.c
