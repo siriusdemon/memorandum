@@ -24,5 +24,6 @@ assert 42 "[+ 20 22]"
 assert 42 "[- 50 8]"
 assert 42 "(* 6 7)"
 assert 42 "(/ 84 2)"
+assert 42 "(* (/ 42 (+ 1 6)) (- 9 2))"
 
 echo OK

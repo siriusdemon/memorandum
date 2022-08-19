@@ -166,11 +166,11 @@ static Node* new_num(int val, Token* tok) {
   return node;
 }
 
+static Node* parse_expr(Token**, Token*, Node*);
+
 static Node* parse_list(Token** rest, Token* tok, Node* cur) {
   char* pair = equal(tok, "(") ? ")" : "]";
   tok = tok->next;
-  Node* lhs = new_num(tok->next->val, tok->next);
-  Node* rhs = new_num(tok->next->next->val, tok->next->next);
 
   NodeKind kind;
   if (equal(tok, "+")) {
@@ -184,9 +184,13 @@ static Node* parse_list(Token** rest, Token* tok, Node* cur) {
   } else {
     error("invalid operation");
   }
+  tok = tok->next;
+  Node tmp;
+  Node* lhs = parse_expr(&tok, tok, &tmp);
+  Node* rhs = parse_expr(&tok, tok, &tmp);
   Node* node = new_binary(kind, lhs, rhs, tok);
 
-  tok = skip(tok->next->next->next, pair);
+  tok = skip(tok, pair);
   cur->next = node;
   *rest = tok;
   return node;
@@ -199,21 +203,28 @@ static Node* parse_number(Token** rest, Token* tok, Node* cur) {
   return node;
 }
 
+// every thing is an expr
+static Node* parse_expr(Token** rest, Token *tok, Node* cur) {
+  if (tok->kind == TK_LPAREN || tok->kind == TK_LBRACKET) {
+    cur = parse_list(&tok, tok, cur);
+    *rest = tok;
+    return cur;
+  }
+
+  if (tok->kind == TK_NUM) {
+    cur = parse_number(&tok, tok, cur);
+    *rest = tok;
+    return cur;
+  }
+
+  error("Invalid code!");
+}
+
 static Node* parse(Token* tok) {
   Node head = {};
   Node* cur = &head;
   while (tok->kind != TK_EOF) {
-    if (tok->kind == TK_LPAREN || tok->kind == TK_LBRACKET) {
-      cur = parse_list(&tok, tok, cur);
-      continue;
-    }
-
-    if (tok->kind == TK_NUM) {
-      cur = parse_number(&tok, tok, cur);
-      continue;
-    }
-
-    error("invalid node");
+    cur = parse_expr(&tok, tok, cur);
   }
   return head.next;
 }
