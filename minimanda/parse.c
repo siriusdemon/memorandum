@@ -39,10 +39,16 @@ static Node* parse_list(Token** rest, Token* tok, Node* cur) {
     error_tok(tok, "invalid operation");
   }
   tok = tok->next;
-  Node tmp;
-  Node* lhs = parse_expr(&tok, tok, &tmp);
-  Node* rhs = parse_expr(&tok, tok, &tmp);
-  Node* node = new_binary(kind, lhs, rhs, tok);
+  Node tmp, *lhs, *rhs, *node;
+  lhs = parse_expr(&tok, tok, &tmp);
+  rhs = parse_expr(&tok, tok, &tmp);
+  node = new_binary(kind, lhs, rhs, tok);
+  // there is more operands to operate on.
+  while (tok->kind != TK_EOF && !equal(tok, pair)) {
+    lhs = node;  
+    rhs = parse_expr(&tok, tok, &tmp);
+    node = new_binary(kind, lhs, rhs, tok);
+  }
 
   tok = skip(tok, pair);
   cur->next = node;
