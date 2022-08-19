@@ -3,7 +3,7 @@ assert() {
   expected="$1"
   input="$2"
 
-  ./chibicc "$input" > tmp.s || exit
+  ./manda "$input" > tmp.s || exit
   gcc -static -o tmp tmp.s
   ./tmp
   actual="$?"
@@ -18,5 +18,7 @@ assert() {
 
 assert 0 0
 assert 42 42
+assert 42 "(+ 20 22)"
+assert 42 "(- 50 8)"
 
 echo OK
