@@ -20,5 +20,7 @@ assert 0 0
 assert 42 42
 assert 42 "(+ 20 22)"
 assert 42 "(- 50 8)"
+assert 42 "[+ 20 22]"
+assert 42 "[- 50 8]"
 
 echo OK

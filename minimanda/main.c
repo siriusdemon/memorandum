@@ -6,11 +6,13 @@
 #include <string.h>
 
 typedef enum {
-  TK_RESERVED, // Keywords or punctuators
-  TK_NUM,      // Numeric literals
-  TK_EOF,      // End-of-file markers
-  TK_LPAREN,  // (
-  TK_RPAREN,  // )
+  TK_RESERVED,  // Keywords or punctuators
+  TK_NUM,       // Numeric literals
+  TK_EOF,       // End-of-file markers
+  TK_LPAREN,    // (
+  TK_RPAREN,    // )
+  TK_LBRACKET,  // [
+  TK_RBRACKET,  // ]
 } TokenKind;
 
 // Token type
@@ -118,6 +120,16 @@ static Token* tokenize(char* p) {
       continue;
     }
 
+    if (*p == '[') {
+      cur = new_token(TK_LBRACKET, cur, p++, 1);
+      continue;
+    }
+    
+    if (*p == ']') {
+      cur = new_token(TK_RBRACKET, cur, p++, 1);
+      continue;
+    }
+
     // Punctuator
     if (*p == '+' ||* p == '-') {
       cur = new_token(TK_RESERVED, cur, p++, 1);
@@ -152,12 +164,13 @@ static Node* new_num(int val, Token* tok) {
 }
 
 static Node* parse_list(Token** rest, Token* tok, Node* cur) {
+  char* pair = equal(tok, "(") ? ")" : "]";
   tok = tok->next;
   Node* lhs = new_num(tok->next->val, tok->next);
   Node* rhs = new_num(tok->next->next->val, tok->next->next);
   NodeKind kind = equal(tok, "+") ? ND_ADD : ND_SUB;
   Node* node = new_binary(kind, lhs, rhs, tok);
-  tok = skip(tok->next->next->next, ")");
+  tok = skip(tok->next->next->next, pair);
   cur->next = node;
   *rest = tok;
   return node;
@@ -174,7 +187,7 @@ static Node* parse(Token* tok) {
   Node head = {};
   Node* cur = &head;
   while (tok->kind != TK_EOF) {
-    if (tok->kind == TK_LPAREN) {
+    if (tok->kind == TK_LPAREN || tok->kind == TK_LBRACKET) {
       cur = parse_list(&tok, tok, cur);
       continue;
     }
