@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <ctype.h>
 #include <stdarg.h>
 #include <stdbool.h>
@@ -27,9 +28,11 @@ struct Token {
 
 
 typedef enum {
-  ND_ADD,
-  ND_SUB,
-  ND_NUM,
+  ND_ADD,         // +
+  ND_SUB,         // -
+  ND_MUL,         // *
+  ND_DIV,         // /
+  ND_NUM,         // integer
 } NodeKind;
 
 
@@ -131,7 +134,7 @@ static Token* tokenize(char* p) {
     }
 
     // Punctuator
-    if (*p == '+' ||* p == '-') {
+    if (*p == '+' || *p == '-' || *p == '*' || *p == '/') {
       cur = new_token(TK_RESERVED, cur, p++, 1);
       continue;
     }
@@ -168,8 +171,21 @@ static Node* parse_list(Token** rest, Token* tok, Node* cur) {
   tok = tok->next;
   Node* lhs = new_num(tok->next->val, tok->next);
   Node* rhs = new_num(tok->next->next->val, tok->next->next);
-  NodeKind kind = equal(tok, "+") ? ND_ADD : ND_SUB;
+
+  NodeKind kind;
+  if (equal(tok, "+")) {
+    kind = ND_ADD;
+  } else if (equal(tok, "-")) {
+    kind = ND_SUB;
+  } else if (equal(tok, "*")) {
+    kind = ND_MUL;
+  } else if (equal(tok, "/")) {
+    kind = ND_DIV;
+  } else {
+    error("invalid operation");
+  }
   Node* node = new_binary(kind, lhs, rhs, tok);
+
   tok = skip(tok->next->next->next, pair);
   cur->next = node;
   *rest = tok;
@@ -202,25 +218,58 @@ static Node* parse(Token* tok) {
   return head.next;
 }
 
+// codegen
+static int depth;
+
+static void push(void) {
+  printf("  push %%rax\n");
+  depth++;
+}
+
+static void pop(char *arg) {
+  printf("  pop %s\n", arg);
+  depth--;
+}
+
+static void gen_expr(Node *node) {
+  if (node->kind == ND_NUM) {
+    printf("  mov $%d, %%rax\n", node->val);
+    return;
+  }
+
+  gen_expr(node->rhs);
+  push();
+  gen_expr(node->lhs);
+  pop("%rdi");
+
+  switch (node->kind) {
+  case ND_ADD:
+    printf("  add %%rdi, %%rax\n");
+    return;
+  case ND_SUB:
+    printf("  sub %%rdi, %%rax\n");
+    return;
+  case ND_MUL:
+    printf("  imul %%rdi, %%rax\n");
+    return;
+  case ND_DIV:
+    printf("  cqo\n");
+    printf("  idiv %%rdi\n");
+    return;
+  }
+
+  error("invalid expression");
+}
+
 static void codegen(Node* node) {
   printf("  .globl main\n");
   printf("main:\n");
 
-  if (node->kind == ND_SUB) {
-    printf("  mov $%d, %%rax\n", node->lhs->val);
-    printf("  sub $%d, %%rax\n", node->rhs->val);
-  }
-
-  if (node->kind == ND_ADD) {
-    printf("  mov $%d, %%rax\n", node->lhs->val);
-    printf("  add $%d, %%rax\n", node->rhs->val);
-  }
-
-  if (node->kind == ND_NUM) {
-    printf("  mov $%d, %%rax\n", node->val);
-  }
-
+  // Traverse the AST to emit assembly.
+  gen_expr(node);
   printf("  ret\n");
+
+  assert(depth == 0);
 }
 
 int main(int argc, char** argv) {
