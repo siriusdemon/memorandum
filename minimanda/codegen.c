@@ -48,7 +48,9 @@ void codegen(Node* node) {
   printf("main:\n");
 
   // Traverse the AST to emit assembly.
-  gen_expr(node);
+  for (; node; node = node->next) {
+    gen_expr(node);
+  }
   printf("  ret\n");
 
   assert(depth == 0);

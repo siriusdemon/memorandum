@@ -84,7 +84,8 @@ Node* parse(Token* tok) {
   Node head = {};
   Node* cur = &head;
   while (tok->kind != TK_EOF) {
-    cur = parse_expr(&tok, tok, cur);
+    cur->next = parse_expr(&tok, tok, cur);
+    cur = cur->next;
   }
   return head.next;
 }
