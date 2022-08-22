@@ -31,10 +31,8 @@ static void gen_addr(Node *node) {
   case ND_VAR:
     printf("  lea %d(%%rbp), %%rax\n", node->var->offset);
     return;
-  case ND_DEREF:
-    gen_expr(node->lhs);
-    return;
   }
+  error_tok(node->tok, "only variables support `&` operation.");
 }
 
 // Assign offsets to local variables.
