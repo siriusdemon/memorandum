@@ -3,6 +3,11 @@
 // codegen
 static int depth;
 
+static int count(void) {
+  static int i = 1;
+  return i++;
+}
+
 static void push(void) {
   printf("  push %%rax\n");
   depth++;
@@ -50,7 +55,21 @@ static void gen_expr(Node *node) {
     gen_addr(node);
     printf("  mov (%%rax), %%rax\n");
     return;
+  case ND_IF: {     // {} is needed here to declare `c`.
+    int c = count();
+    gen_expr(node->cond);
+    printf("  cmp $0, %%rax\n");
+    printf("  je  .L.else.%d\n", c);
+    gen_expr(node->then);
+    printf("  jmp .L.end.%d\n", c);
+    printf(".L.else.%d:\n", c);
+    if (node->els)
+      gen_expr(node->els);
+    printf(".L.end.%d:\n", c);
+    return;
   }
+  }
+  
 
   gen_expr(node->rhs);
   push();

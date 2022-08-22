@@ -6,6 +6,7 @@ static Node* parse_expr(Token** rest, Token* tok);
 static Node* parse_list(Token** rest, Token* tok);
 static Node* parse_expr(Token** rest, Token* tok);
 static Node* parse_let(Token** rest, Token* tok);
+static Node* parse_if(Token** rest, Token* tok);
 static Node* parse_number(Token** rest, Token* tok);
 static Node* parse_primitive(Token** rest, Token* tok);
 
@@ -63,16 +64,40 @@ static Node* new_let(Node* lhs, Node* rhs, Token* tok) {
   return node;
 }
 
+static Node* new_if(Node* cond, Node* then, Node* els, Token* tok) {
+  Node* node = new_node(ND_IF, tok);
+  node->cond = cond;
+  node->then = then;
+  node->els = els;
+  return node;
+}
+
 static Node* parse_list(Token** rest, Token* tok) {
   Node* node;
   char* pair = equal(tok, "(") ? ")" : "]";
   tok = tok->next;
   if (equal(tok, "let")) {
     node = parse_let(&tok, tok);
+  } else if (equal(tok, "if")) {
+    node = parse_if(&tok, tok);
   } else {
     node = parse_primitive(&tok, tok);
   } 
   tok = skip(tok, pair);
+  *rest = tok;
+  return node;
+}
+
+static Node* parse_if(Token **rest, Token *tok) {
+  Token* tok_if = tok;
+  tok = skip(tok, "if");
+  Node* cond = parse_expr(&tok, tok);
+  Node* then = parse_expr(&tok, tok);
+  Node* els = NULL;
+  if (!stop_parse(tok)) {
+    els = parse_expr(&tok, tok);
+  }
+  Node* node = new_if(cond, then, els, tok_if);
   *rest = tok;
   return node;
 }

@@ -64,6 +64,7 @@ typedef enum {
   ND_NUM,         // integer
   ND_VAR,         // variable
   ND_LET,         // let
+  ND_IF,          // if
 } NodeKind;
 
 
@@ -81,6 +82,11 @@ struct Node {
 
   // var
   Var* var;
+
+  // if
+  Node* cond;
+  Node* then;
+  Node* els;
 };
 
 struct Var {

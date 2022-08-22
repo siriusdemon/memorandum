@@ -36,5 +36,8 @@ assert 0 "(< 2 1)"
 assert 0 "(<= 2 1)"
 assert 1 "(>= 2 1)"
 assert 1 "(= 1 1)"
+assert 1 "(if (< 1 2) 1 2)"
+assert 2 "(if (> 1 2) 1 2)"
+assert 42 "(if (> 1 2) 1 (* 6 7))"
 
 echo OK
