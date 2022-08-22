@@ -66,6 +66,7 @@ typedef enum {
   ND_LET,         // let
   ND_SET,         // set
   ND_IF,          // if
+  ND_WHILE,       // while
 } NodeKind;
 
 

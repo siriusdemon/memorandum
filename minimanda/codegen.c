@@ -69,6 +69,18 @@ static void gen_expr(Node *node) {
     printf(".L.end.%d:\n", c);
     return;
   }
+  case ND_WHILE: {
+    int c = count();
+    printf(".L.while.%d:\n", c);
+    gen_expr(node->cond);
+    printf("  cmp $0, %%rax\n");
+    printf("  je  .L.end.%d\n", c);
+    for (Node* n = node->then; n; n = n->next)
+      gen_expr(n);
+    printf("  jmp .L.while.%d\n", c);
+    printf(".L.end.%d:\n", c);
+    return;
+  }
   }
   
 

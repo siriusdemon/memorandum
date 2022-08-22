@@ -8,6 +8,7 @@ static Node* parse_expr(Token** rest, Token* tok);
 static Node* parse_let(Token** rest, Token* tok);
 static Node* parse_set(Token** rest, Token* tok);
 static Node* parse_if(Token** rest, Token* tok);
+static Node* parse_while(Token** rest, Token* tok);
 static Node* parse_number(Token** rest, Token* tok);
 static Node* parse_primitive(Token** rest, Token* tok);
 
@@ -81,6 +82,13 @@ static Node* new_if(Node* cond, Node* then, Node* els, Token* tok) {
   return node;
 }
 
+static Node* new_while(Node* cond, Node* then, Token* tok) {
+  Node* node = new_node(ND_WHILE, tok);
+  node->cond = cond;
+  node->then = then;
+  return node;
+}
+
 static Node* parse_list(Token** rest, Token* tok) {
   Node* node;
   char* pair = equal(tok, "(") ? ")" : "]";
@@ -91,6 +99,8 @@ static Node* parse_list(Token** rest, Token* tok) {
     node = parse_set(&tok, tok);
   } else if (equal(tok, "if")) {
     node = parse_if(&tok, tok);
+  } else if (equal(tok, "while")) {
+    node = parse_while(&tok, tok);
   } else {
     node = parse_primitive(&tok, tok);
   } 
@@ -112,6 +122,22 @@ static Node* parse_if(Token **rest, Token *tok) {
   *rest = tok;
   return node;
 }
+
+static Node* parse_while(Token **rest, Token *tok) {
+  Token* tok_while = tok;
+  tok = skip(tok, "while");
+  Node* cond = parse_expr(&tok, tok);
+  Node head = {};
+  Node* cur = &head;
+  while (!stop_parse(tok)) {
+    cur->next = parse_expr(&tok, tok);
+    cur = cur->next;
+  }
+  Node* node = new_while(cond, head.next, tok_while);
+  *rest = tok;
+  return node;
+}
+
 
 static Node* parse_let(Token **rest, Token *tok) {
   Token* tok_let = tok;
