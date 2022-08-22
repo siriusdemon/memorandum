@@ -6,6 +6,7 @@ static Node* parse_expr(Token** rest, Token* tok);
 static Node* parse_list(Token** rest, Token* tok);
 static Node* parse_expr(Token** rest, Token* tok);
 static Node* parse_let(Token** rest, Token* tok);
+static Node* parse_set(Token** rest, Token* tok);
 static Node* parse_if(Token** rest, Token* tok);
 static Node* parse_number(Token** rest, Token* tok);
 static Node* parse_primitive(Token** rest, Token* tok);
@@ -64,6 +65,14 @@ static Node* new_let(Node* lhs, Node* rhs, Token* tok) {
   return node;
 }
 
+static Node* new_set(Node* lhs, Node* rhs, Token* tok) {
+  Node* node = new_node(ND_SET, tok);
+  node->lhs = lhs;
+  node->rhs = rhs;
+  return node;
+}
+
+
 static Node* new_if(Node* cond, Node* then, Node* els, Token* tok) {
   Node* node = new_node(ND_IF, tok);
   node->cond = cond;
@@ -78,6 +87,8 @@ static Node* parse_list(Token** rest, Token* tok) {
   tok = tok->next;
   if (equal(tok, "let")) {
     node = parse_let(&tok, tok);
+  } else if (equal(tok, "set")) {
+    node = parse_set(&tok, tok);
   } else if (equal(tok, "if")) {
     node = parse_if(&tok, tok);
   } else {
@@ -113,6 +124,19 @@ static Node* parse_let(Token **rest, Token *tok) {
   *rest = tok;
   return node;
 }
+
+static Node* parse_set(Token **rest, Token *tok) {
+  Token* tok_set = tok;
+  tok = skip(tok, "set");
+  Var* var = find_var(tok);
+  Node* lhs = new_var_node(var, tok);
+  tok = tok->next;
+  Node* rhs = parse_expr(&tok, tok);
+  Node* node = new_set(lhs, rhs, tok);
+  *rest = tok;
+  return node;
+}
+
 
 static Node* parse_primitive(Token** rest, Token* tok) {
   NodeKind kind;
@@ -183,7 +207,7 @@ static Node* parse_expr(Token** rest, Token *tok) {
     return new_var_node(var, tok);
   }
 
-  error_tok(tok, "Invalid code!");
+  error_tok(tok, "expect an expression");
 }
 
 Function* parse(Token* tok) {

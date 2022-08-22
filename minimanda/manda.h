@@ -64,6 +64,7 @@ typedef enum {
   ND_NUM,         // integer
   ND_VAR,         // variable
   ND_LET,         // let
+  ND_SET,         // set
   ND_IF,          // if
 } NodeKind;
 

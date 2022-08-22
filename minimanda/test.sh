@@ -39,5 +39,6 @@ assert 1 "(= 1 1)"
 assert 1 "(if (< 1 2) 1 2)"
 assert 2 "(if (> 1 2) 1 2)"
 assert 42 "(if (> 1 2) 1 (* 6 7))"
+assert 42 "(let i 1) (set i (* 6 7)) i"
 
 echo OK

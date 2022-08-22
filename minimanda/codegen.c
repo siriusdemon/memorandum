@@ -41,6 +41,7 @@ static void assign_lvar_offsets(Function *prog) {
 
 static void gen_expr(Node *node) {
   switch(node->kind) {
+  case ND_SET:
   case ND_LET:
     gen_addr(node->lhs);
     push();
