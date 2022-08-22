@@ -22,7 +22,6 @@ typedef enum {
   TK_RPAREN,    // )
   TK_LBRACKET,  // [
   TK_RBRACKET,  // ]
-  TK_LET,       // keyword let
   TK_IDENT,     // identifier
 } TokenKind;
 
@@ -57,6 +56,11 @@ typedef enum {
   ND_SUB,         // -
   ND_MUL,         // *
   ND_DIV,         // /
+  ND_EQ,          // =
+  ND_LT,          // <
+  ND_LE,          // <=
+  ND_GT,          // >
+  ND_GE,          // >=
   ND_NUM,         // integer
   ND_VAR,         // variable
   ND_LET,         // let

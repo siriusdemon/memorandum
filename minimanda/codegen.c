@@ -56,6 +56,9 @@ static void gen_expr(Node *node) {
   push();
   gen_expr(node->lhs);
   pop("%rdi");
+  
+  // for compare operation.
+  char* cc = NULL;
 
   switch (node->kind) {
   case ND_ADD:
@@ -70,6 +73,17 @@ static void gen_expr(Node *node) {
   case ND_DIV:
     printf("  cqo\n");
     printf("  idiv %%rdi\n");
+    return;
+  case ND_EQ: cc = "e"; break;
+  case ND_LT: cc = "l"; break;
+  case ND_LE: cc = "le"; break;
+  case ND_GE: cc = "ge"; break;
+  case ND_GT: cc = "g"; break;
+ }
+  if (cc) {
+    printf("  cmp %%rdi, %%rax\n");
+    printf("  set%s %%al\n", cc);
+    printf("  movzb %%al, %%rax\n");
     return;
   }
 

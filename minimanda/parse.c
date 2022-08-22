@@ -9,6 +9,10 @@ static Node* parse_let(Token** rest, Token* tok);
 static Node* parse_number(Token** rest, Token* tok);
 static Node* parse_primitive(Token** rest, Token* tok);
 
+static bool stop_parse(Token* tok) {
+  return tok->kind == TK_EOF || tok->kind == TK_RPAREN || tok->kind == TK_RBRACKET;
+}
+
 // ----- variable 
 static Var* find_var(Token* tok) {
   for (Var* var = locals; var; var = var->next)
@@ -87,24 +91,36 @@ static Node* parse_let(Token **rest, Token *tok) {
 
 static Node* parse_primitive(Token** rest, Token* tok) {
   NodeKind kind;
-  if (equal(tok, "+")) {
-    kind = ND_ADD;
-  } else if (equal(tok, "-")) {
-    kind = ND_SUB;
-  } else if (equal(tok, "*")) {
-    kind = ND_MUL;
-  } else if (equal(tok, "/")) {
-    kind = ND_DIV;
-  } else {
-    error_tok(tok, "invalid operation");
+  bool left_compose = true;     // left compose or near compose
+  bool match = false;
+#define Match(t, node_kind, flag)                       \
+        if (equal(tok, t)) {                            \
+          kind = node_kind;                             \
+          left_compose = flag;                          \
+          match = true;                                 \
+        }
+  Match("+", ND_ADD, true) 
+  Match("-", ND_SUB, true)
+  Match("*", ND_MUL, true)
+  Match("/", ND_DIV, true)
+  Match("=", ND_EQ, false)
+  Match(">", ND_GT, false)
+  Match(">=", ND_GE, false)
+  Match("<=", ND_LE, false)
+  Match("<", ND_LT, false)
+#undef Match
+  if (!match) {
+    error_tok(tok, "Invalid primitive");
   }
+  Token* op_tok = tok;
   tok = tok->next;
   Node *lhs, *rhs, *node;
   lhs = parse_expr(&tok, tok);
   rhs = parse_expr(&tok, tok);
-  node = new_binary(kind, lhs, rhs, tok);
-  // there is more operands to operate on.
-  while (tok->kind != TK_EOF && tok->kind != TK_RPAREN && tok->kind != TK_RBRACKET) {
+  node = new_binary(kind, lhs, rhs, op_tok);
+
+  // perform left compose
+  while (left_compose && !stop_parse(tok)) {
     lhs = node;  
     rhs = parse_expr(&tok, tok);
     node = new_binary(kind, lhs, rhs, tok);

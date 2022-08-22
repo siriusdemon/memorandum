@@ -151,7 +151,7 @@ Token* tokenize(char* p) {
       continue;
     }
 
-    // Identifier, some operators and keywords may be collected as identifier.
+    // Identifier, some multi-character operators and keywords may be collected as identifier.
     // function `correct_token` corrects this.
     if (is_ident1(*p)) {
       char *q = p++;
@@ -161,8 +161,8 @@ Token* tokenize(char* p) {
       continue;
     }
 
-    // Punctuator
-    if (*p == '+' || *p == '-' || *p == '*' || *p == '/') {
+    // Punctuator, handles single character operation
+    if (ispunct(*p)) {
       cur = new_token(TK_RESERVED, cur, p++, 1);
       continue;
     }
