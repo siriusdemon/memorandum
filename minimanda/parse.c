@@ -59,6 +59,18 @@ static Node* new_var_node(Var* var, Token* tok) {
   return node;
 }
 
+static Node* new_deref(Node* lhs, Token* tok) {
+  Node* node = new_node(ND_DEREF, tok);
+  node->lhs = lhs;
+  return node;
+}
+
+static Node* new_addr(Node* lhs, Token* tok) {
+  Node* node = new_node(ND_ADDR, tok);
+  node->lhs = lhs;
+  return node;
+}
+
 static Node* new_let(Node* lhs, Node* rhs, Token* tok) {
   Node* node = new_node(ND_LET, tok);
   node->lhs = lhs;
@@ -214,23 +226,37 @@ static Node* parse_number(Token** rest, Token* tok) {
 // every thing is an expr
 static Node* parse_expr(Token** rest, Token *tok) {
   if (tok->kind == TK_LPAREN || tok->kind == TK_LBRACKET) {
-    Node* node = parse_list(&tok, tok);
-    *rest = tok;
-    return node;
+    return parse_list(rest, tok);
   }
 
   if (tok->kind == TK_NUM) {
-    Node* node = parse_number(&tok, tok);
+    return parse_number(rest, tok);
+  }
+
+  if (tok->kind == TK_IDENT) {
+    Var* var = find_var(tok);
+    if (!var)
+      error_tok(tok, "undefined variable");
+    Node* node = new_var_node(var, tok);
+    tok = tok->next;
+    // field access
+    while (equal(tok, ".") && equal(tok->next, "*")) {
+      node = new_deref(node, tok->next);
+      tok = tok->next->next;
+    } 
     *rest = tok;
     return node;
   }
 
-  if (tok->kind == TK_IDENT) {
-    Var *var = find_var(tok);
+  if (equal(tok, "&")) {
+    Token* tok_addr = tok;
+    tok = tok->next;
+    Var* var = find_var(tok);
     if (!var)
       error_tok(tok, "undefined variable");
+    Node* var_node = new_var_node(var, tok);
     *rest = tok->next;
-    return new_var_node(var, tok);
+    return new_addr(var_node, tok_addr);
   }
 
   error_tok(tok, "expect an expression");

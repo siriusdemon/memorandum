@@ -61,6 +61,8 @@ typedef enum {
   ND_LE,          // <=
   ND_GT,          // >
   ND_GE,          // >=
+  ND_ADDR,        // &
+  ND_DEREF,       // a.*
   ND_NUM,         // integer
   ND_VAR,         // variable
   ND_LET,         // let
