@@ -108,7 +108,7 @@ static Node* new_while(Node* cond, Node* then, Token* tok) {
 
 static Node* new_app(char* fn, Node* args, Token* tok) {
   Node* node = new_node(ND_APP, tok);
-  node->lhs = args;
+  node->args = args;
   node->fn = fn;
   return node;
 }

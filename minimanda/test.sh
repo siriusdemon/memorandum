@@ -2,6 +2,9 @@
 cat <<EOF | gcc -xc -c -o tmp2.o -
 int ret3() { return 3; }
 int ret5() { return 5; }
+int add6(int a, int b, int c, int d, int e, int f) {
+    return a + b + c + d + e + f;
+}
 EOF
 
 assert() {
@@ -52,5 +55,7 @@ assert 42 "(let i :int 42) (let b :*int &i) (let c :**int &b) c.*.*"
 assert 42 "(let i :int 42) (let b :*int (addr i)) (deref b)"
 assert 3 "(ret3)"
 assert 5 "(ret3) (ret5)"
+assert 136 "(add6 1 2 3 4 5 (add6 6 7 8 9 10  (add6 11 12 13 14 15 16)))"
+assert 21 "(add6 1 2 (ret3) 4 (ret5) 6)"
 
 echo OK

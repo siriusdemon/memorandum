@@ -98,6 +98,7 @@ struct Node {
 
   // application
   char* fn;
+  Node* args;
 };
 
 struct Var {

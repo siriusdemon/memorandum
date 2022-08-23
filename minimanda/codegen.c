@@ -6,6 +6,7 @@ static void gen_expr(Node* node);
 
 // codegen
 static int depth;
+static char* argreg[] = {"%rdi", "%rsi", "%rdx", "%rcx", "%r8", "%r9"};
 
 static int count(void) {
   static int i = 1;
@@ -87,10 +88,20 @@ static void gen_expr(Node *node) {
     printf(".L.end.%d:\n", c);
     return;
   }
-  case ND_APP:
+  case ND_APP: {
+    int nargs = 0;
+    for (Node *arg = node->args; arg; arg = arg->next) {
+      gen_expr(arg);
+      push();
+      nargs++;
+    }
+
+    for (int i = nargs - 1; i >= 0; i--)
+      pop(argreg[i]);
     printf("  mov $0, %%rax\n");
     printf("  call %s\n", node->fn);
     return;
+  }
   }
 
   // unary
