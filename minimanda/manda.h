@@ -10,6 +10,8 @@
 #include <string.h>
 
 
+typedef struct Type Type;
+typedef struct Node Node;
 
 // 
 // tokenize.c
@@ -48,7 +50,6 @@ void error_tok(Token* tok, char* fmt, ...);
 // parse.c
 //
 typedef struct Var Var;
-typedef struct Node Node;
 typedef struct Function Function;
 
 typedef enum {
@@ -76,6 +77,7 @@ struct Node {
   NodeKind kind;
   Token* tok;
   Node* next;
+  Type* ty;
 
   // number
   int val;
@@ -96,6 +98,7 @@ struct Node {
 struct Var {
   Var* next;
   char* name;
+  Type* ty;
   int offset;
 };
 
@@ -107,6 +110,27 @@ struct Function {
 
 
 Function* parse(Token*);
+
+
+// type.c
+typedef enum {
+  TY_INT,
+  TY_PTR,
+  TY_VOID,
+} TypeKind;
+
+struct Type {
+  TypeKind kind;
+  Type* base;
+};
+
+extern Type* ty_int;
+extern Type* ty_void;
+
+bool is_integer(Type* ty);
+void add_type(Node* node);
+Type* new_int_type();
+Type* pointer_to(Type* ty);
 
 
 //

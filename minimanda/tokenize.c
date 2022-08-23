@@ -57,7 +57,7 @@ static bool is_ident1(char c) {
 
 // Returns true if c is valid as a non-first character of an identifier.
 static bool is_ident2(char c) {
-  return is_ident1(c) || ('0' <= c && c <= '9') || c == '*' || c == '/' || c == '?' 
+  return is_ident1(c) || ('0' <= c && c <= '9') || c == '/' || c == '?' 
       || c == '!' || c == '^' || c == '=';
 }
 
@@ -157,6 +157,8 @@ Token* tokenize(char* p) {
       char *q = p++;
       while (is_ident2(*p))
         p++;
+      if (*p == '*')                                        // need `a *i8`   not `a* i8`
+        error("Invalid identifier symbol '*'");
       cur = new_token(TK_IDENT, cur, q, p - q);
       continue;
     }

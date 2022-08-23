@@ -11,6 +11,7 @@ static Node* parse_if(Token** rest, Token* tok);
 static Node* parse_while(Token** rest, Token* tok);
 static Node* parse_number(Token** rest, Token* tok);
 static Node* parse_primitive(Token** rest, Token* tok);
+static Type* parse_type(Token** rest, Token* tok);
 
 static bool stop_parse(Token* tok) {
   return tok->kind == TK_EOF || tok->kind == TK_RPAREN || tok->kind == TK_RBRACKET;
@@ -155,8 +156,9 @@ static Node* parse_let(Token **rest, Token *tok) {
   Token* tok_let = tok;
   tok = skip(tok, "let");
   Var* var = new_lvar(strndup(tok->loc, tok->len));
+  tok = skip(tok->next, ":");
+  var->ty = parse_type(&tok, tok);
   Node* lhs = new_var_node(var, tok);
-  tok = tok->next;
   Node* rhs = parse_expr(&tok, tok);
   Node* node = new_let(lhs, rhs, tok);
   *rest = tok;
@@ -262,12 +264,43 @@ static Node* parse_expr(Token** rest, Token *tok) {
   error_tok(tok, "expect an expression");
 }
 
+static Type* parse_pointer_type(Token** rest, Token* tok, Type* base) {
+  while (equal(tok, "*")) {
+    base = pointer_to(base);
+    tok = tok->next;
+  }
+  *rest = tok;
+  return base;
+}
+
+static Type* parse_nonpointer_type(Token** rest, Token* tok) {
+  if (equal(tok, "int")) {
+    *rest = tok->next;
+    return new_int_type();
+  }
+  error_tok(tok, "invalid type");
+}
+
+
+static Type* parse_type(Token** rest, Token* tok) {
+  if (equal(tok, "*")) {
+    Type* dummy = new_int_type();     // since we don't what type it is
+    Type* ty = parse_pointer_type(&tok, tok, dummy);
+    Type* base = parse_nonpointer_type(&tok, tok);
+    *dummy = *base;
+    *rest = tok;
+    return ty;
+  }
+  return parse_nonpointer_type(rest, tok);
+}
+
 Function* parse(Token* tok) {
   Node head = {};
   Node* cur = &head;
   while (tok->kind != TK_EOF) {
     cur->next = parse_expr(&tok, tok);
     cur = cur->next;
+    add_type(cur);
   }
   Function* prog = calloc(1, sizeof(Function));
   prog->body = head.next;
