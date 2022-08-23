@@ -70,6 +70,9 @@ void add_type(Node* node) {
       node->ty = node->then->ty;
     }
     return;
+  case ND_APP:
+    node->ty = ty_int;
+    return;
   }
   error_tok(node->tok, "can't assign type of kind %d\n", node->kind);
 }

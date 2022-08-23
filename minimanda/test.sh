@@ -1,10 +1,15 @@
 #!/bin/bash
+cat <<EOF | gcc -xc -c -o tmp2.o -
+int ret3() { return 3; }
+int ret5() { return 5; }
+EOF
+
 assert() {
   expected="$1"
   input="$2"
 
   ./manda "$input" > tmp.s || exit
-  gcc -static -o tmp tmp.s
+  gcc -static -o tmp tmp.s tmp2.o
   ./tmp
   actual="$?"
 
@@ -45,5 +50,7 @@ assert 42 "(let i :int 42) (let b :int i) b"
 assert 42 "(let i :int 42) (let b :*int &i) b.*"
 assert 42 "(let i :int 42) (let b :*int &i) (let c :**int &b) c.*.*"
 assert 42 "(let i :int 42) (let b :*int (addr i)) (deref b)"
+assert 3 "(ret3)"
+assert 5 "(ret3) (ret5)"
 
 echo OK

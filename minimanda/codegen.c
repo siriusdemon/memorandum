@@ -87,6 +87,10 @@ static void gen_expr(Node *node) {
     printf(".L.end.%d:\n", c);
     return;
   }
+  case ND_APP:
+    printf("  mov $0, %%rax\n");
+    printf("  call %s\n", node->fn);
+    return;
   }
 
   // unary

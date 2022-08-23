@@ -14,6 +14,7 @@ static Node* parse_primitive(Token** rest, Token* tok);
 static Node* parse_binary(Token** rest, NodeKind kind, bool left_compose, Token* tok);
 static Node* parse_deref(Token** rest, Token* tok);
 static Node* parse_addr(Token** rest, Token* tok);
+static Node* parse_application(Token** rest, Token* tok);
 static Type* parse_type(Token** rest, Token* tok);
 
 static bool stop_parse(Token* tok) {
@@ -105,6 +106,14 @@ static Node* new_while(Node* cond, Node* then, Token* tok) {
   return node;
 }
 
+static Node* new_app(char* fn, Node* args, Token* tok) {
+  Node* node = new_node(ND_APP, tok);
+  node->lhs = args;
+  node->fn = fn;
+  return node;
+}
+
+
 static Node* parse_list(Token** rest, Token* tok) {
   Node* node;
   char* pair = equal(tok, "(") ? ")" : "]";
@@ -117,9 +126,11 @@ static Node* parse_list(Token** rest, Token* tok) {
     node = parse_if(&tok, tok);
   } else if (equal(tok, "while")) {
     node = parse_while(&tok, tok);
-  } else {  
-      node = parse_primitive(&tok, tok);
-  } 
+  } else if (is_primitive(tok)) {  
+    node = parse_primitive(&tok, tok);
+  }  else {
+    node = parse_application(&tok, tok);
+  }
   tok = skip(tok, pair);
   *rest = tok;
   return node;
@@ -240,6 +251,20 @@ static Node* parse_deref(Token** rest, Token* tok) {
   Node* node = new_deref(lhs, tok_deref);
   *rest = tok;
   return node;
+}
+
+static Node* parse_application(Token** rest, Token* tok) {
+  Token* tok_app = tok;
+  char* fn = strndup(tok->loc, tok->len);
+  Node head = {};
+  Node* cur = &head;
+  tok = tok->next;
+  while (!stop_parse(tok)) {
+    cur->next = parse_expr(&tok, tok); 
+    cur = cur->next;
+  }
+  *rest = tok;
+  return new_app(fn, head.next, tok_app);
 }
 
 static Node* parse_expr(Token** rest, Token *tok) {

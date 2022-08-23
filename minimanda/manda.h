@@ -39,6 +39,7 @@ struct Token {
 
 
 bool equal(Token*, char*);
+bool is_primitive(Token*);
 Token* skip(Token*, char*);
 Token* tokenize(char*);
 
@@ -70,6 +71,7 @@ typedef enum {
   ND_SET,         // set
   ND_IF,          // if
   ND_WHILE,       // while
+  ND_APP,         // application
 } NodeKind;
 
 
@@ -93,6 +95,9 @@ struct Node {
   Node* cond;
   Node* then;
   Node* els;
+
+  // application
+  char* fn;
 };
 
 struct Var {

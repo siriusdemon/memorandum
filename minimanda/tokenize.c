@@ -73,8 +73,8 @@ static bool is_keyword(Token* tok) {
   return false;
 }
 
-static bool is_primitive(Token* tok) {
-  static char *kw[] = {"+", "-", "*", "/", "<", ">=", "<=", "=", "and", "or", 
+bool is_primitive(Token* tok) {
+  static char *kw[] = {"+", "-", "*", "/", "<", ">", ">=", "<=", "=", "and", "or", 
     "not", "xor", "sra", "srl", "sll", "bitand", "bitor", "bitnot", "bitxor",
     "addr", "deref", 
   };
