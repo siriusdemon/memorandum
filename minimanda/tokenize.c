@@ -74,8 +74,9 @@ static bool is_keyword(Token* tok) {
 }
 
 static bool is_primitive(Token* tok) {
-  static char *kw[] = {"+", "-", "*", "/", "<", ">=", "<=", "=", "and", "or",
+  static char *kw[] = {"+", "-", "*", "/", "<", ">=", "<=", "=", "and", "or", 
     "not", "xor", "sra", "srl", "sll", "bitand", "bitor", "bitnot", "bitxor",
+    "addr", "deref", 
   };
   for (int i = 0; i < sizeof(kw) / sizeof(*kw); i++)
     if (equal(tok, kw[i]))

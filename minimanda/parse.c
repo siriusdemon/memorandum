@@ -11,6 +11,9 @@ static Node* parse_if(Token** rest, Token* tok);
 static Node* parse_while(Token** rest, Token* tok);
 static Node* parse_number(Token** rest, Token* tok);
 static Node* parse_primitive(Token** rest, Token* tok);
+static Node* parse_binary(Token** rest, NodeKind kind, bool left_compose, Token* tok);
+static Node* parse_deref(Token** rest, Token* tok);
+static Node* parse_addr(Token** rest, Token* tok);
 static Type* parse_type(Token** rest, Token* tok);
 
 static bool stop_parse(Token* tok) {
@@ -114,8 +117,8 @@ static Node* parse_list(Token** rest, Token* tok) {
     node = parse_if(&tok, tok);
   } else if (equal(tok, "while")) {
     node = parse_while(&tok, tok);
-  } else {
-    node = parse_primitive(&tok, tok);
+  } else {  
+      node = parse_primitive(&tok, tok);
   } 
   tok = skip(tok, pair);
   *rest = tok;
@@ -177,30 +180,24 @@ static Node* parse_set(Token **rest, Token *tok) {
   return node;
 }
 
-
 static Node* parse_primitive(Token** rest, Token* tok) {
-  NodeKind kind;
-  bool left_compose = true;     // left compose or near compose
-  bool match = false;
-#define Match(t, node_kind, flag)                       \
-        if (equal(tok, t)) {                            \
-          kind = node_kind;                             \
-          left_compose = flag;                          \
-          match = true;                                 \
-        }
-  Match("+", ND_ADD, true) 
-  Match("-", ND_SUB, true)
-  Match("*", ND_MUL, true)
-  Match("/", ND_DIV, true)
-  Match("=", ND_EQ, false)
-  Match(">", ND_GT, false)
-  Match(">=", ND_GE, false)
-  Match("<=", ND_LE, false)
-  Match("<", ND_LT, false)
+#define Match(t, handle)    if (equal(tok, t)) return handle;
+  Match("+", parse_binary(rest, ND_ADD, true, tok))
+  Match("-", parse_binary(rest, ND_SUB, true, tok))
+  Match("*", parse_binary(rest, ND_MUL, true, tok))
+  Match("/", parse_binary(rest, ND_DIV, true, tok))
+  Match("=", parse_binary(rest, ND_EQ, false, tok))
+  Match(">", parse_binary(rest, ND_GT, false, tok))
+  Match("<", parse_binary(rest, ND_LT, false, tok))
+  Match("<=", parse_binary(rest, ND_LE, false, tok))
+  Match(">=", parse_binary(rest, ND_GE, false, tok))
+  Match("deref", parse_deref(rest, tok))
+  Match("addr", parse_addr(rest, tok))
 #undef Match
-  if (!match) {
-    error_tok(tok, "Invalid primitive");
-  }
+  error_tok(tok, "invalid primitive\n");
+}
+
+static Node* parse_binary(Token** rest, NodeKind kind, bool left_compose, Token* tok) {
   Token* op_tok = tok;
   tok = tok->next;
   Node *lhs, *rhs, *node;
@@ -225,7 +222,26 @@ static Node* parse_number(Token** rest, Token* tok) {
   return node;
 }
 
-// every thing is an expr
+static Node* parse_addr(Token** rest, Token* tok) {
+  Token* tok_addr = tok;
+  tok = tok->next;
+  Var* var = find_var(tok);
+  if (!var)
+    error_tok(tok, "undefined variable");
+  Node* var_node = new_var_node(var, tok);
+  *rest = tok->next;
+  return new_addr(var_node, tok_addr);
+}
+
+static Node* parse_deref(Token** rest, Token* tok) {
+  Token* tok_deref = tok;
+  tok = tok->next;
+  Node* lhs = parse_expr(&tok, tok);
+  Node* node = new_deref(lhs, tok_deref);
+  *rest = tok;
+  return node;
+}
+
 static Node* parse_expr(Token** rest, Token *tok) {
   if (tok->kind == TK_LPAREN || tok->kind == TK_LBRACKET) {
     return parse_list(rest, tok);
@@ -251,14 +267,7 @@ static Node* parse_expr(Token** rest, Token *tok) {
   }
 
   if (equal(tok, "&")) {
-    Token* tok_addr = tok;
-    tok = tok->next;
-    Var* var = find_var(tok);
-    if (!var)
-      error_tok(tok, "undefined variable");
-    Node* var_node = new_var_node(var, tok);
-    *rest = tok->next;
-    return new_addr(var_node, tok_addr);
+    return parse_addr(rest, tok);
   }
 
   error_tok(tok, "expect an expression");

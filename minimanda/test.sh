@@ -44,5 +44,6 @@ assert 10 "(let i :int 1) (while (< i 10) (set i (+ i 1))) i"
 assert 42 "(let i :int 42) (let b :int i) b"
 assert 42 "(let i :int 42) (let b :*int &i) b.*"
 assert 42 "(let i :int 42) (let b :*int &i) (let c :**int &b) c.*.*"
+assert 42 "(let i :int 42) (let b :*int (addr i)) (deref b)"
 
 echo OK
