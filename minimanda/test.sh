@@ -90,4 +90,13 @@ assert 42 "(def main() -> int
             (iset (iget a 0) 0 42) 
             (iget (iget a 0) 0))"
 
+assert 42 "(def main() -> int 
+            (let a :[32 32 int]) 
+            (iset (iget a 0) 0 42) 
+            (iget (iget a 0) 0))"
+
+assert 8 "(def main() -> int (sizeof *int))"
+assert 40 "(def main() -> int (sizeof [5 *int]))"
+assert 200 "(def main() -> int (sizeof [5 5 int]))"
+
 echo OK

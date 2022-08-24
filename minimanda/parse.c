@@ -224,6 +224,14 @@ static Node* parse_set(Token **rest, Token *tok) {
   return node;
 }
 
+static Node* parse_sizeof(Token **rest, Token *tok) {
+  Token* tok_sizeof = tok;
+  tok = tok->next;
+  Type* ty = parse_type(&tok, tok);
+  *rest = tok;
+  return new_num(ty->size, tok_sizeof);
+}
+
 static Node* parse_primitive(Token** rest, Token* tok) {
 #define Match(t, handle)    if (equal(tok, t)) return handle;
   Match("+", parse_binary(rest, ND_ADD, true, tok))
@@ -239,6 +247,7 @@ static Node* parse_primitive(Token** rest, Token* tok) {
   Match("iset", parse_triple(rest, ND_ISET, tok))
   Match("deref", parse_deref(rest, tok))
   Match("addr", parse_addr(rest, tok))
+  Match("sizeof", parse_sizeof(rest, tok))
 #undef Match
   error_tok(tok, "invalid primitive\n");
 }
@@ -409,10 +418,16 @@ static Type* parse_array_type(Token** rest, Token* tok) {
   char* pair = tok->kind == TK_LBRACKET? "]" : ")";
   tok = tok->next;
   int len = get_number(parse_expr(&tok, tok));
-  Type* base = parse_type(&tok, tok);
+  Type* base = new_int_type();
+  Type* ty = base;
+  while (tok->kind == TK_NUM) {
+    int len = get_number(parse_expr(&tok, tok));
+    ty = array_of(ty, len);
+  }
+  *base = *parse_type(&tok, tok);
   tok = skip(tok, pair);
   *rest = tok;
-  return array_of(base, len);
+  return array_of(ty, len);
 }
 
 static Type* parse_pointer_type(Token** rest, Token* tok) {
