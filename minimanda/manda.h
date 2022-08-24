@@ -120,6 +120,7 @@ Node* parse(Token*);
 typedef enum {
   TY_INT,
   TY_PTR,
+  TY_ARRAY,
   TY_FUNC,
   TY_VOID,
 } TypeKind;
@@ -127,6 +128,9 @@ typedef enum {
 struct Type {
   TypeKind kind;
   Type* base;
+  int size;
+  // array
+  int array_len;
 };
 
 extern Type* ty_int;
@@ -135,7 +139,8 @@ extern Type* ty_void;
 bool is_integer(Type* ty);
 void add_type(Node* node);
 Type* new_int_type();
-Type* pointer_to(Type* ty);
+Type* pointer_to(Type* base);
+Type* array_of(Type *base, int len);
 
 
 //

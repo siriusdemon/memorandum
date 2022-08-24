@@ -24,6 +24,27 @@ static void pop(char *arg) {
   depth--;
 }
 
+// Load a value from where %rax is pointing to.
+static void load(Type *ty) {
+  if (ty->kind == TY_ARRAY) {
+    // If it is an array, do not attempt to load a value to the
+    // register because in general we can't load an entire array to a
+    // register. As a result, the result of an evaluation of an array
+    // becomes not the array itself but the address of the array.
+    // This is where "array is automatically converted to a pointer to
+    // the first element of the array in C" occurs.
+    return;
+  }
+
+  printf("  mov (%%rax), %%rax\n");
+}
+
+// Store %rax to an address that the stack top is pointing to.
+static void store(void) {
+  pop("%rdi");
+  printf("  mov %%rax, (%%rdi)\n");
+}
+
 static int align_to(int n, int align) {
   return (n + align - 1) / align * align;
 }
@@ -42,7 +63,7 @@ static void assign_lvar_offsets(Node* prog) {
   for (Node* fn = prog; fn; fn = fn->next) {
     int offset = 0;
     for (Var *var = fn->locals; var; var = var->next) {
-      offset += 8;
+      offset += var->ty->size;
       var->offset = -offset;
     }
     fn->stack_size = align_to(offset, 16);
@@ -51,20 +72,26 @@ static void assign_lvar_offsets(Node* prog) {
 
 static void gen_expr(Node *node) {
   switch(node->kind) {
-  case ND_SET:
   case ND_LET:
+    if (node->rhs) {
+      gen_addr(node->lhs);
+      push();
+      gen_expr(node->rhs);
+      store();
+    }
+    return;
+  case ND_SET:
     gen_addr(node->lhs);
     push();
     gen_expr(node->rhs);
-    pop("%rdi");
-    printf("  mov %%rax, (%%rdi)\n");
+    store();
     return;
   case ND_NUM:
     printf("  mov $%d, %%rax\n", node->val);
     return;
   case ND_VAR:
     gen_addr(node);
-    printf("  mov (%%rax), %%rax\n");
+    load(node->ty);
     return;
   case ND_IF: {     // {} is needed here to declare `c`.
     int c = count();
@@ -111,7 +138,7 @@ static void gen_expr(Node *node) {
   switch (node->kind) {
     case ND_DEREF:
       gen_expr(node->lhs);
-      printf("  mov (%%rax), %%rax\n");
+      load(node->ty);
       return;
     case ND_ADDR: 
       gen_addr(node->lhs);

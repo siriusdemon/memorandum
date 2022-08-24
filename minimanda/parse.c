@@ -125,6 +125,15 @@ static Node* new_function(char* fn, Type* ret_ty, Node* args, Node* body, Token*
   return node;
 }
 
+static int get_number(Node* node) {
+  if (node->kind != ND_NUM) {
+    error_tok(node->tok, "not a number");
+  }
+  return node->val;
+}
+
+
+
 static Node* parse_list(Token** rest, Token* tok) {
   Node* node;
   char* pair = equal(tok, "(") ? ")" : "]";
@@ -187,7 +196,8 @@ static Node* parse_let(Token **rest, Token *tok) {
   Type* ty = parse_type(&tok, tok);
   Var* var = new_lvar(strndup(tok_var->loc, tok_var->len), ty);
   Node* lhs = new_var_node(var, tok_var);
-  Node* rhs = parse_expr(&tok, tok);
+  Node* rhs = NULL;
+  if (!stop_parse(tok)) { rhs = parse_expr(&tok, tok); }
   Node* node = new_let(lhs, rhs, tok_let);
   *rest = tok;
   return node;
@@ -363,34 +373,49 @@ static Node* parse_expr(Token** rest, Token *tok) {
   error_tok(tok, "expect an expression");
 }
 
-static Type* parse_pointer_type(Token** rest, Token* tok, Type* base) {
-  while (equal(tok, "*")) {
-    base = pointer_to(base);
-    tok = tok->next;
-  }
-  *rest = tok;
-  return base;
-}
-
-static Type* parse_nonpointer_type(Token** rest, Token* tok) {
+static Type* parse_base_type(Token** rest, Token* tok) {
   if (equal(tok, "int")) {
     *rest = tok->next;
     return new_int_type();
   }
-  error_tok(tok, "invalid type");
+  error_tok(tok, "invalid base type");
 }
 
+static Type* parse_array_type(Token** rest, Token* tok) {
+  char* pair = tok->kind == TK_LBRACKET? "]" : ")";
+  tok = tok->next;
+  int len = get_number(parse_expr(&tok, tok));
+  Type* base = parse_type(&tok, tok);
+  tok = skip(tok, pair);
+  *rest = tok;
+  return array_of(base, len);
+}
 
-static Type* parse_type(Token** rest, Token* tok) {
-  if (equal(tok, "*")) {
-    Type* dummy = new_int_type();     // since we don't what type it is
-    Type* ty = parse_pointer_type(&tok, tok, dummy);
-    Type* base = parse_nonpointer_type(&tok, tok);
-    *dummy = *base;
+static Type* parse_pointer_type(Token** rest, Token* tok) {
+  Type* base = new_int_type();      // should be overridden
+  Type* ty = base;
+  while (equal(tok, "*")) {
+    ty = pointer_to(ty);
+    tok = tok->next;
+  }
+  if (tok->kind == TK_LBRACKET || tok->kind == TK_LPAREN) {
+    *base = *parse_array_type(&tok, tok);
     *rest = tok;
     return ty;
   }
-  return parse_nonpointer_type(rest, tok);
+  *base = *parse_base_type(&tok, tok);
+  *rest = tok;
+  return ty;
+}
+
+static Type* parse_type(Token** rest, Token* tok) {
+  if (equal(tok, "*")) {
+    return parse_pointer_type(rest, tok);
+  }
+  if (tok->kind == TK_LBRACKET || tok->kind == TK_LPAREN) {
+    return parse_array_type(rest, tok);
+  }
+  return parse_base_type(rest, tok);
 }
 
 Node* parse(Token* tok) {

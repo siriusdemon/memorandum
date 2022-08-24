@@ -59,5 +59,18 @@ assert 136 "(def main() -> int (add6 1 2 3 4 5 (add6 6 7 8 9 10  (add6 11 12 13 
 assert 21 "(def main() -> int (add6 1 2 (ret3) 4 (ret5) 6))"
 assert 42 "(def main() -> int (ret42)) (def ret42() -> int 42)"
 assert 42 "(def main() -> int (add 20 22)) (def add(a int b int) -> int (+ a b))"
+assert 11 "(def main() -> int (cc 1 2 3 4 5 6)) 
+           (def cc(a int b int c int d int e int f int) -> int 
+            (* a (- e d) (+ b c f)))"
+
+assert 0 "(def main() -> int (let a: [32 int]) 0)"
+assert 0 "(def main() -> int (let a: [32 *int]) 0)"
+assert 0 "(def main() -> int (let a: *[32 int]) 0)"
+assert 0 "(def main() -> int (let a :[32 int]) (let b :[32 int])  0)"
+assert 0 "(def main() -> int 
+            (let a :*[32 int]) 
+            (let b :[32 *int])  
+            (let c :*[32 *[32 int]])  
+            0)"
 
 echo OK

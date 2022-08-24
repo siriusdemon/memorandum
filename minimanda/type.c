@@ -1,7 +1,7 @@
 #include "manda.h"
 
-Type* ty_int = &(Type){TY_INT};
-Type* ty_void = &(Type){TY_VOID};
+Type* ty_int = &(Type){.kind = TY_INT, .size = 8};
+Type* ty_void = &(Type){.kind = TY_VOID, .size = 0};
 
 bool is_integer(Type* ty) {
   return ty->kind == TY_INT;
@@ -10,6 +10,7 @@ bool is_integer(Type* ty) {
 Type* pointer_to(Type* base) {
   Type* ty = calloc(1, sizeof(Type));
   ty->kind = TY_PTR;
+  ty->size = 8;
   ty->base = base;
   return ty;
 }
@@ -17,7 +18,16 @@ Type* pointer_to(Type* base) {
 Type* new_int_type() {
   Type* ty = calloc(1, sizeof(Type));
   ty->kind = TY_INT;
+  ty->size = 8;
   return ty;
+}
+
+Type* array_of(Type* base, int len) {
+  Type* ty = calloc(1, sizeof(Type));
+  ty->kind = TY_ARRAY;
+  ty->size = base->size * len;
+  ty->base = base;
+  ty->array_len = len;
 }
 
 void add_type(Node* node) {
@@ -53,15 +63,21 @@ void add_type(Node* node) {
     node->ty = node->var->ty;
     return;
   case ND_SET:
+    if (node->lhs->ty->kind == TY_ARRAY) {
+      error_tok(node->tok, "not a lvalue");
+    }
   case ND_LET:
   case ND_WHILE:
     node->ty = ty_void;
     return;
   case ND_ADDR:
-    node->ty = pointer_to(node->lhs->ty);
+    if (node->lhs->ty->kind == TY_ARRAY) 
+      node->ty = pointer_to(node->lhs->ty->base);
+    else 
+      node->ty = pointer_to(node->lhs->ty);
     return;
   case ND_DEREF:
-    if (node->lhs->ty->kind != TY_PTR) {
+    if (!node->lhs->ty->base) {
       error_tok(node->tok, "invalid pointer dereference\n");
     } 
     node->ty = node->lhs->ty->base;
