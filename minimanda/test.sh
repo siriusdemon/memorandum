@@ -73,4 +73,16 @@ assert 0 "(def main() -> int
             (let c :*[32 *[32 int]])  
             0)"
 
+assert 1 "(def main() -> int
+            (let a :[32 int])
+            (iset a 0 1)
+            (iset a 1 2)
+            (iget a 0))"
+
+assert 42 "(def main() -> int
+            (let a :[32 int])
+            (let p :*[32 int] &a)
+            (iset p.* 0 42)
+            (iget p.* 0))"
+
 echo OK

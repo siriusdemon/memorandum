@@ -66,6 +66,8 @@ typedef enum {
   ND_DEREF,       // a.*
   ND_NUM,         // integer
   ND_VAR,         // variable
+  ND_IGET,        // iget
+  ND_ISET,        // iset
   ND_LET,         // let
   ND_SET,         // set
   ND_IF,          // if
@@ -84,9 +86,10 @@ struct Node {
   // number
   int val;
 
-  // binary
-  Node* lhs;
-  Node* rhs;
+  // binary or triple
+  Node* lhs;  // left
+  Node* mhs;  // middle, only for triple
+  Node* rhs;  // right
 
   // var
   Var* var;

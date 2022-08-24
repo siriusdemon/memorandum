@@ -12,6 +12,7 @@ static Node* parse_while(Token** rest, Token* tok);
 static Node* parse_number(Token** rest, Token* tok);
 static Node* parse_primitive(Token** rest, Token* tok);
 static Node* parse_binary(Token** rest, NodeKind kind, bool left_compose, Token* tok);
+static Node* parse_triple(Token** rest, NodeKind kind, Token* tok);
 static Node* parse_deref(Token** rest, Token* tok);
 static Node* parse_addr(Token** rest, Token* tok);
 static Node* parse_application(Token** rest, Token* tok);
@@ -50,6 +51,14 @@ static Node* new_node(NodeKind kind, Token* tok) {
 static Node* new_binary(NodeKind kind, Node* lhs, Node* rhs, Token* tok) {
   Node* node = new_node(kind, tok);
   node->lhs = lhs;
+  node->rhs = rhs;
+  return node;
+}
+
+static Node* new_triple(NodeKind kind, Node* lhs, Node* mhs, Node* rhs, Token* tok) {
+  Node* node = new_node(kind, tok);
+  node->lhs = lhs;
+  node->mhs = mhs;
   node->rhs = rhs;
   return node;
 }
@@ -226,6 +235,8 @@ static Node* parse_primitive(Token** rest, Token* tok) {
   Match("<", parse_binary(rest, ND_LT, false, tok))
   Match("<=", parse_binary(rest, ND_LE, false, tok))
   Match(">=", parse_binary(rest, ND_GE, false, tok))
+  Match("iget", parse_binary(rest, ND_IGET, false, tok))
+  Match("iset", parse_triple(rest, ND_ISET, tok))
   Match("deref", parse_deref(rest, tok))
   Match("addr", parse_addr(rest, tok))
 #undef Match
@@ -246,6 +257,19 @@ static Node* parse_binary(Token** rest, NodeKind kind, bool left_compose, Token*
     rhs = parse_expr(&tok, tok);
     node = new_binary(kind, lhs, rhs, op_tok);
   }
+
+  *rest = tok;
+  return node;
+}
+
+static Node* parse_triple(Token** rest, NodeKind kind, Token* tok) {
+  Token* op_tok = tok;
+  tok = tok->next;
+  Node *lhs, *mhs, *rhs, *node;
+  lhs = parse_expr(&tok, tok);
+  mhs = parse_expr(&tok, tok);
+  rhs = parse_expr(&tok, tok);
+  node = new_triple(kind, lhs, mhs, rhs, op_tok);
 
   *rest = tok;
   return node;

@@ -35,6 +35,7 @@ void add_type(Node* node) {
     return;
 
   add_type(node->lhs);
+  add_type(node->mhs);
   add_type(node->rhs);
   add_type(node->cond);
   add_type(node->then);
@@ -62,12 +63,17 @@ void add_type(Node* node) {
   case ND_VAR:
     node->ty = node->var->ty;
     return;
-  case ND_SET:
-    if (node->lhs->ty->kind == TY_ARRAY) {
-      error_tok(node->tok, "not a lvalue");
+  case ND_IGET:
+    if (node->lhs->ty->kind != TY_ARRAY) {
+      error_tok(node->tok, "not an array\n");
     }
+    node->ty = node->lhs->ty->base;
+    return;
+  case ND_SET:
+  case ND_ISET:
   case ND_LET:
   case ND_WHILE:
+  case ND_FUNC:
     node->ty = ty_void;
     return;
   case ND_ADDR:
@@ -93,9 +99,6 @@ void add_type(Node* node) {
     return;
   case ND_APP:
     node->ty = ty_int;
-    return;
-  case ND_FUNC:
-    node->ty = ty_void;
     return;
   }
   error_tok(node->tok, "can't assign type of kind %d\n", node->kind);

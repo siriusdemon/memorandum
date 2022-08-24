@@ -145,6 +145,30 @@ static void gen_expr(Node *node) {
       return;
   } 
 
+  // iget iset
+  switch (node->kind) {
+    case ND_ISET:
+      gen_expr(node->lhs);
+      push();
+      gen_expr(node->mhs);
+      printf("  imul $%d, %%rax\n", node->lhs->ty->base->size);
+      pop("%rdi");
+      printf("  add %%rdi, %%rax\n");
+      push();
+      gen_expr(node->rhs);
+      store();
+      return;
+    case ND_IGET:
+      gen_expr(node->lhs);
+      push();
+      gen_expr(node->rhs);
+      printf("  imul $%d, %%rax\n", node->lhs->ty->base->size);
+      pop("%rdi");
+      printf("  add %%rdi, %%rax\n");
+      printf("  mov (%%rax), %%rax\n");
+      return;
+  }
+
   gen_expr(node->rhs);
   push();
   gen_expr(node->lhs);
