@@ -15,6 +15,7 @@ static Node* parse_binary(Token** rest, NodeKind kind, bool left_compose, Token*
 static Node* parse_deref(Token** rest, Token* tok);
 static Node* parse_addr(Token** rest, Token* tok);
 static Node* parse_application(Token** rest, Token* tok);
+static Node* parse_def(Token** rest, Token* tok);
 static Type* parse_type(Token** rest, Token* tok);
 
 static bool stop_parse(Token* tok) {
@@ -113,6 +114,15 @@ static Node* new_app(char* fn, Node* args, Token* tok) {
   return node;
 }
 
+static Node* new_function(char* fn, Type* ret_ty, Node* args, Node* body, Token* tok) {
+  Node* node = new_node(ND_FUNC, tok);
+  node->args = args;
+  node->fn = fn;
+  node->locals = locals;
+  node->body = body;
+  node->ret_ty = ret_ty;
+  return node;
+}
 
 static Node* parse_list(Token** rest, Token* tok) {
   Node* node;
@@ -126,6 +136,8 @@ static Node* parse_list(Token** rest, Token* tok) {
     node = parse_if(&tok, tok);
   } else if (equal(tok, "while")) {
     node = parse_while(&tok, tok);
+  } else if (equal(tok, "def")) {
+    node = parse_def(&tok, tok);
   } else if (is_primitive(tok)) {  
     node = parse_primitive(&tok, tok);
   }  else {
@@ -267,6 +279,56 @@ static Node* parse_application(Token** rest, Token* tok) {
   return new_app(fn, head.next, tok_app);
 }
 
+
+/* E.G.
+(def main() -> int
+  (ret3))
+*/
+static Node* parse_def(Token** rest, Token* tok) {
+  Token* tok_def = tok;
+  tok = tok->next;
+  char* fn = strndup(tok->loc, tok->len);
+  tok = tok->next;
+
+  // check an args list 
+  char* pair;
+  switch (tok->kind) {
+  case TK_LPAREN: pair = ")"; break;
+  case TK_LBRACKET: pair = "]"; break;
+  default:
+    error_tok(tok, "expect an args list");
+  }
+  tok = tok->next;
+  
+  // args parsing
+  locals = NULL;
+  Node head_args = {};
+  Node* cur = &head_args;
+  while (!stop_parse(tok)) {
+    Var* var = new_lvar(strndup(tok->loc, tok->len));
+    Node* a = new_var_node(var, tok);
+    tok = tok->next;
+    Type* ty = parse_type(&tok, tok);
+    var->ty = ty;
+  }
+  tok = skip(tok, pair);
+
+  // return type
+  tok = skip(tok, "->");
+  Type* ret_ty = parse_type(&tok, tok);
+
+  // body
+  Node head_body = {};
+  cur = &head_body;
+  while (!stop_parse(tok)) {
+    cur->next = parse_expr(&tok, tok);
+    cur = cur->next;
+  }
+  *rest = tok;
+  return new_function(fn, ret_ty, head_args.next, head_body.next, tok_def);
+}
+
+
 static Node* parse_expr(Token** rest, Token *tok) {
   if (tok->kind == TK_LPAREN || tok->kind == TK_LBRACKET) {
     return parse_list(rest, tok);
@@ -328,7 +390,7 @@ static Type* parse_type(Token** rest, Token* tok) {
   return parse_nonpointer_type(rest, tok);
 }
 
-Function* parse(Token* tok) {
+Node* parse(Token* tok) {
   Node head = {};
   Node* cur = &head;
   while (tok->kind != TK_EOF) {
@@ -336,8 +398,5 @@ Function* parse(Token* tok) {
     cur = cur->next;
     add_type(cur);
   }
-  Function* prog = calloc(1, sizeof(Function));
-  prog->body = head.next;
-  prog->locals = locals;
-  return prog;
+  return head.next;
 }

@@ -7,6 +7,7 @@ static void gen_expr(Node* node);
 // codegen
 static int depth;
 static char* argreg[] = {"%rdi", "%rsi", "%rdx", "%rcx", "%r8", "%r9"};
+static Node* current_fn;
 
 static int count(void) {
   static int i = 1;
@@ -37,13 +38,15 @@ static void gen_addr(Node *node) {
 }
 
 // Assign offsets to local variables.
-static void assign_lvar_offsets(Function *prog) {
-  int offset = 0;
-  for (Var *var = prog->locals; var; var = var->next) {
-    offset += 8;
-    var->offset = -offset;
+static void assign_lvar_offsets(Node* prog) {
+  for (Node* fn = prog; fn; fn = fn->next) {
+    int offset = 0;
+    for (Var *var = fn->locals; var; var = var->next) {
+      offset += 8;
+      var->offset = -offset;
+    }
+    fn->stack_size = align_to(offset, 16);
   }
-  prog->stack_size = align_to(offset, 16);
 }
 
 static void gen_expr(Node *node) {
@@ -153,22 +156,29 @@ static void gen_expr(Node *node) {
   error("invalid expression");
 }
 
-void codegen(Function* prog) {
+void codegen(Node* prog) {
   assign_lvar_offsets(prog);
-  printf("  .globl main\n");
-  printf("main:\n");
 
-  // Prologue
-  printf("  push %%rbp\n");
-  printf("  mov %%rsp, %%rbp\n");
-  printf("  sub $%d, %%rsp\n", prog->stack_size);
-  // Traverse the AST to emit assembly.
-  for (Node* node = prog->body; node; node = node->next) {
-    gen_expr(node);
+  for (Node* fn = prog; fn; fn = fn->next) {
+    printf("  .globl %s\n", fn->fn);
+    printf("%s:\n", fn->fn);
+    current_fn = fn;
+
+    // Prologue
+    printf("  push %%rbp\n");
+    printf("  mov %%rsp, %%rbp\n");
+    printf("  sub $%d, %%rsp\n", fn->stack_size);
+
+    // Emit code
+    for (Node* e = fn->body; e; e = e->next) {
+      gen_expr(e);
+    }
     assert(depth == 0);
-  }
-  printf("  mov %%rbp, %%rsp\n");
-  printf("  pop %%rbp\n");
-  printf("  ret\n");
 
+    // Epilogue
+    printf(".L.return.%s:\n", fn->fn);
+    printf("  mov %%rbp, %%rsp\n");
+    printf("  pop %%rbp\n");
+    printf("  ret\n");
+  }
 }

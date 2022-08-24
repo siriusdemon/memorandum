@@ -51,7 +51,6 @@ void error_tok(Token* tok, char* fmt, ...);
 // parse.c
 //
 typedef struct Var Var;
-typedef struct Function Function;
 
 typedef enum {
   ND_ADD,         // +
@@ -72,6 +71,7 @@ typedef enum {
   ND_IF,          // if
   ND_WHILE,       // while
   ND_APP,         // application
+  ND_FUNC,        // function
 } NodeKind;
 
 
@@ -96,9 +96,14 @@ struct Node {
   Node* then;
   Node* els;
 
-  // application
+  // application // function
   char* fn;
   Node* args;
+  Node* body;
+  Var* locals;
+  Type* ret_ty; 
+  int stack_size;
+  
 };
 
 struct Var {
@@ -108,20 +113,14 @@ struct Var {
   int offset;
 };
 
-struct Function {
-  Node *body;
-  Var *locals;
-  int stack_size;
-}; 
-
-
-Function* parse(Token*);
+Node* parse(Token*);
 
 
 // type.c
 typedef enum {
   TY_INT,
   TY_PTR,
+  TY_FUNC,
   TY_VOID,
 } TypeKind;
 
@@ -142,5 +141,5 @@ Type* pointer_to(Type* ty);
 //
 // codegen.c
 //
-void codegen(Function* node);
+void codegen(Node* node);
 #endif
