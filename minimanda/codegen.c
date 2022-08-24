@@ -165,7 +165,7 @@ static void gen_expr(Node *node) {
       printf("  imul $%d, %%rax\n", node->lhs->ty->base->size);
       pop("%rdi");
       printf("  add %%rdi, %%rax\n");
-      printf("  mov (%%rax), %%rax\n");
+      load(node->lhs->ty->base);
       return;
   }
 

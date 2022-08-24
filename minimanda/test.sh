@@ -85,4 +85,9 @@ assert 42 "(def main() -> int
             (iset p.* 0 42)
             (iget p.* 0))"
 
+assert 42 "(def main() -> int 
+            (let a :[32 [32 int]]) 
+            (iset (iget a 0) 0 42) 
+            (iget (iget a 0) 0))"
+
 echo OK
