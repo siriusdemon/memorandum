@@ -30,6 +30,11 @@ void add_type(Node* node) {
   add_type(node->then);
   add_type(node->els);
 
+  for (Node* n = node->body; n; n = n->next)
+    add_type(n);
+  for (Node *n = node->args; n; n = n->next)
+    add_type(n);
+
 
   switch (node->kind) {
   case ND_ADD:

@@ -57,6 +57,7 @@ assert 3 "(def main() -> int (ret3))"
 assert 5 "(def main() -> int (ret3) (ret5))"
 assert 136 "(def main() -> int (add6 1 2 3 4 5 (add6 6 7 8 9 10  (add6 11 12 13 14 15 16))))"
 assert 21 "(def main() -> int (add6 1 2 (ret3) 4 (ret5) 6))"
-assert 42 "(def main() -> int (ret0)) (def ret0() -> int 42)"
+assert 42 "(def main() -> int (ret42)) (def ret42() -> int 42)"
+assert 42 "(def main() -> int (add 20 22)) (def add(a int b int) -> int (+ a b))"
 
 echo OK

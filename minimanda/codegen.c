@@ -169,6 +169,9 @@ void codegen(Node* prog) {
     printf("  mov %%rsp, %%rbp\n");
     printf("  sub $%d, %%rsp\n", fn->stack_size);
 
+    int i = 0;
+    for (Node* arg = fn->args; arg; arg = arg->next)
+      printf("  mov %s, %d(%%rbp)\n", argreg[i++], arg->var->offset);
     // Emit code
     for (Node* e = fn->body; e; e = e->next) {
       gen_expr(e);

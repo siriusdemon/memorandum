@@ -30,10 +30,11 @@ static Var* find_var(Token* tok) {
   return NULL;
 }
 
-static Var* new_lvar(char* name) {
+static Var* new_lvar(char* name, Type *ty) {
   Var *var = calloc(1, sizeof(Var));
   var->name = name;
   var->next = locals;
+  var->ty = ty;
   locals = var;
   return var;
 }
@@ -181,12 +182,13 @@ static Node* parse_while(Token **rest, Token *tok) {
 static Node* parse_let(Token **rest, Token *tok) {
   Token* tok_let = tok;
   tok = skip(tok, "let");
-  Var* var = new_lvar(strndup(tok->loc, tok->len));
+  Token* tok_var = tok;
   tok = skip(tok->next, ":");
-  var->ty = parse_type(&tok, tok);
-  Node* lhs = new_var_node(var, tok);
+  Type* ty = parse_type(&tok, tok);
+  Var* var = new_lvar(strndup(tok_var->loc, tok_var->len), ty);
+  Node* lhs = new_var_node(var, tok_var);
   Node* rhs = parse_expr(&tok, tok);
-  Node* node = new_let(lhs, rhs, tok);
+  Node* node = new_let(lhs, rhs, tok_let);
   *rest = tok;
   return node;
 }
@@ -198,7 +200,7 @@ static Node* parse_set(Token **rest, Token *tok) {
   Node* lhs = new_var_node(var, tok);
   tok = tok->next;
   Node* rhs = parse_expr(&tok, tok);
-  Node* node = new_set(lhs, rhs, tok);
+  Node* node = new_set(lhs, rhs, tok_set);
   *rest = tok;
   return node;
 }
@@ -232,7 +234,7 @@ static Node* parse_binary(Token** rest, NodeKind kind, bool left_compose, Token*
   while (left_compose && !stop_parse(tok)) {
     lhs = node;  
     rhs = parse_expr(&tok, tok);
-    node = new_binary(kind, lhs, rhs, tok);
+    node = new_binary(kind, lhs, rhs, op_tok);
   }
 
   *rest = tok;
@@ -305,11 +307,12 @@ static Node* parse_def(Token** rest, Token* tok) {
   Node head_args = {};
   Node* cur = &head_args;
   while (!stop_parse(tok)) {
-    Var* var = new_lvar(strndup(tok->loc, tok->len));
-    Node* a = new_var_node(var, tok);
+    Token* tok_arg = tok;
     tok = tok->next;
     Type* ty = parse_type(&tok, tok);
-    var->ty = ty;
+    Var* var = new_lvar(strndup(tok_arg->loc, tok_arg->len), ty);
+    cur->next = new_var_node(var, tok_arg);
+    cur = cur->next;
   }
   tok = skip(tok, pair);
 
