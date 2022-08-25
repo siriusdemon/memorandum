@@ -9,6 +9,7 @@ $(OBJS): manda.h
 
 test: manda
 	./test.sh
+	./test-driver.sh
 
 clean:
 	rm -f manda *.o *~ tmp*

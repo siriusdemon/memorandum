@@ -5,6 +5,7 @@ static void gen_expr(Node* node);
 
 
 // codegen
+static FILE *output_file;
 static int depth;
 static char *argreg8[] = {"%dil", "%sil", "%dl", "%cl", "%r8b", "%r9b"};
 static char *argreg64[] = {"%rdi", "%rsi", "%rdx", "%rcx", "%r8", "%r9"};
@@ -13,8 +14,8 @@ static Node* current_fn;
 static void println(char *fmt, ...) {
   va_list ap;
   va_start(ap, fmt);
-  vprintf(fmt, ap);
-  printf("\n");
+  vfprintf(output_file, fmt, ap);
+  fprintf(output_file, "\n");
 }
 
 static int count(void) {
@@ -248,9 +249,10 @@ static void emit_data(Node* prog) {
 }
 
 
-void codegen(Node* prog) {
-  emit_data(prog);
+void codegen(Node* prog, FILE* out) {
+  output_file = out;
 
+  emit_data(prog);
   assign_lvar_offsets(prog);
   for (Node* fn = prog; fn; fn = fn->next) {
     if (fn->kind != ND_FUNC) 

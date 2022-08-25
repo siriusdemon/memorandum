@@ -159,5 +159,5 @@ Type* placeholder();
 //
 // codegen.c
 //
-void codegen(Node* node);
+void codegen(Node* prog, FILE* out);
 #endif
