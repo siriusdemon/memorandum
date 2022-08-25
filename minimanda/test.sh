@@ -99,4 +99,8 @@ assert 8 "(def main() -> int (sizeof *int))"
 assert 40 "(def main() -> int (sizeof [5 *int]))"
 assert 200 "(def main() -> int (sizeof [5 5 int]))"
 
+assert 0 "(let g :int) (def main() -> int g)"
+assert 42 "(let g :int) (def main() -> int (set g 42) g)"
+assert 42 "(let g :int) (def main() -> int (let g :int 42) g)"
+
 echo OK

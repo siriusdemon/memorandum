@@ -52,7 +52,13 @@ static int align_to(int n, int align) {
 static void gen_addr(Node *node) {
   switch (node->kind) {
   case ND_VAR:
-    printf("  lea %d(%%rbp), %%rax\n", node->var->offset);
+    if (node->var->is_local) {
+      // Local variable
+      printf("  lea %d(%%rbp), %%rax\n", node->var->offset);
+    } else {
+      // Global variable
+      printf("  lea %s(%%rip), %%rax\n", node->var->name);
+    }
     return;
   }
   error_tok(node->tok, "only variables support `&` operation.");
@@ -207,10 +213,29 @@ static void gen_expr(Node *node) {
   error("invalid expression");
 }
 
-void codegen(Node* prog) {
-  assign_lvar_offsets(prog);
 
+// emit global variable
+static void emit_data(Node* prog) {
+  for (Node* node = prog; node; node = node->next) {
+    if (node->kind != ND_LET)
+      continue;
+
+    printf("  .data\n");
+    printf("  .globl %s\n", node->lhs->var->name);
+    printf("%s:\n", node->lhs->var->name);
+    printf("  .zero %d\n", node->lhs->var->ty->size);
+  }
+}
+
+
+void codegen(Node* prog) {
+  emit_data(prog);
+
+  assign_lvar_offsets(prog);
   for (Node* fn = prog; fn; fn = fn->next) {
+    if (fn->kind != ND_FUNC) 
+      continue;
+
     printf("  .globl %s\n", fn->fn);
     printf("%s:\n", fn->fn);
     current_fn = fn;

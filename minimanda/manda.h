@@ -114,6 +114,7 @@ struct Var {
   char* name;
   Type* ty;
   int offset;
+  bool is_local;
 };
 
 Node* parse(Token*);

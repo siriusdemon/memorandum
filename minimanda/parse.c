@@ -1,11 +1,14 @@
 #include "manda.h"
 
 Var* locals;
+Var* globals;
 
+
+static Node* parse_global_var(Token** rest, Token *tok);
 static Node* parse_expr(Token** rest, Token* tok);
 static Node* parse_list(Token** rest, Token* tok);
 static Node* parse_expr(Token** rest, Token* tok);
-static Node* parse_let(Token** rest, Token* tok);
+static Node* parse_let(Token** rest, Token* tok, Var* (*alloc_var)(char* name, Type* ty));
 static Node* parse_set(Token** rest, Token* tok);
 static Node* parse_if(Token** rest, Token* tok);
 static Node* parse_while(Token** rest, Token* tok);
@@ -28,6 +31,10 @@ static Var* find_var(Token* tok) {
   for (Var* var = locals; var; var = var->next)
     if (strlen(var->name) == tok->len && !strncmp(tok->loc, var->name, tok->len))
       return var;
+    
+  for (Var* var = globals; var; var = var->next)
+    if (strlen(var->name) == tok->len && !strncmp(tok->loc, var->name, tok->len))
+      return var;
   return NULL;
 }
 
@@ -36,7 +43,18 @@ static Var* new_lvar(char* name, Type *ty) {
   var->name = name;
   var->next = locals;
   var->ty = ty;
+  var->is_local = true;
   locals = var;
+  return var;
+}
+
+static Var* new_gvar(char* name, Type *ty) {
+  Var *var = calloc(1, sizeof(Var));
+  var->name = name;
+  var->next = globals;
+  var->ty = ty;
+  var->is_local = false;
+  globals = var;
   return var;
 }
 
@@ -148,7 +166,7 @@ static Node* parse_list(Token** rest, Token* tok) {
   char* pair = equal(tok, "(") ? ")" : "]";
   tok = tok->next;
   if (equal(tok, "let")) {
-    node = parse_let(&tok, tok);
+    node = parse_let(&tok, tok, new_lvar);
   } else if (equal(tok, "set")) {
     node = parse_set(&tok, tok);
   } else if (equal(tok, "if")) {
@@ -197,13 +215,13 @@ static Node* parse_while(Token **rest, Token *tok) {
 }
 
 
-static Node* parse_let(Token **rest, Token *tok) {
+static Node* parse_let(Token **rest, Token *tok, Var* (*alloc_var)(char* name, Type* ty)) {
   Token* tok_let = tok;
   tok = skip(tok, "let");
   Token* tok_var = tok;
   tok = skip(tok->next, ":");
   Type* ty = parse_type(&tok, tok);
-  Var* var = new_lvar(strndup(tok_var->loc, tok_var->len), ty);
+  Var* var = alloc_var(strndup(tok_var->loc, tok_var->len), ty);
   Node* lhs = new_var_node(var, tok_var);
   Node* rhs = NULL;
   if (!stop_parse(tok)) { rhs = parse_expr(&tok, tok); }
@@ -457,13 +475,41 @@ static Type* parse_type(Token** rest, Token* tok) {
   return parse_base_type(rest, tok);
 }
 
+static bool is_function(Token* tok) {
+  bool islist = tok->kind == TK_LPAREN || tok->kind == TK_LBRACKET;
+  bool isdef = equal(tok->next, "def");
+  return islist && isdef;
+}
+
+static bool is_global_var(Token* tok) {
+  bool islist = tok->kind == TK_LPAREN || tok->kind == TK_LBRACKET;
+  bool islet = equal(tok->next, "let");
+  return islist && islet;
+}
+
+static Node* parse_global_var(Token** rest, Token *tok) {
+  char* pair = equal(tok, "(") ? ")" : "]";
+  tok = tok->next;
+  Node* node = parse_let(&tok, tok, new_gvar);
+  tok = skip(tok, pair);
+  *rest = tok;
+  return node;
+}
+
 Node* parse(Token* tok) {
   Node head = {};
   Node* cur = &head;
   while (tok->kind != TK_EOF) {
-    cur->next = parse_expr(&tok, tok);
-    cur = cur->next;
-    add_type(cur);
+    if (is_function(tok)) {
+      cur->next = parse_expr(&tok, tok);
+      cur = cur->next;
+      add_type(cur);
+    } else if (is_global_var(tok)) {
+      cur->next = parse_global_var(&tok, tok);
+      cur = cur->next;  
+    } else {
+      error_tok(tok, "invalid expression");
+    }
   }
   return head.next;
 }
