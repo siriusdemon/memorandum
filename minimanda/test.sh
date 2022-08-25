@@ -110,5 +110,15 @@ assert 97 '(def main() -> int (iget "abc" 0))'
 assert 98 '(def main() -> int (iget "abc" 1))'
 assert 99 '(def main() -> int (iget "abc" 2))'
 assert 0 '(def main() -> int (iget "abc" 3))'
+assert 0 '(def main() -> int (iget "abc" 3))'
+
+assert 7 '(def main() -> int (iget "\a" 0))'
+assert 8 '(def main() -> int (iget "\b" 0))'
+assert 9 '(def main() -> int (iget "\t" 0))'
+assert 10 '(def main() -> int (iget "\n" 0))'
+assert 11 '(def main() -> int (iget "\v" 0))'
+assert 12 '(def main() -> int (iget "\f" 0))'
+assert 13 '(def main() -> int (iget "\r" 0))'
+assert 27 '(def main() -> int (iget "\e" 0))'
 
 echo OK

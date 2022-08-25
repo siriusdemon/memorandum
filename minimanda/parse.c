@@ -329,7 +329,7 @@ static Node* parse_number(Token** rest, Token* tok) {
 }
 
 static Node* parse_str(Token** rest, Token* tok) {
-  Type* ty = array_of(ty_char, tok->len - 1);
+  Type* ty = array_of(ty_char, strlen(tok->str) + 1);
   Var* var = new_anon_gvar(ty);
   Node* var_node = new_var_node(var, tok);
   var_node->ty = ty;
