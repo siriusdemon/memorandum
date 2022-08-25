@@ -1,5 +1,6 @@
 #include "manda.h"
 
+Node* prog = &(Node){};
 Var* locals;
 Var* globals;
 
@@ -13,6 +14,7 @@ static Node* parse_set(Token** rest, Token* tok);
 static Node* parse_if(Token** rest, Token* tok);
 static Node* parse_while(Token** rest, Token* tok);
 static Node* parse_number(Token** rest, Token* tok);
+static Node* parse_str(Token** rest, Token* tok);
 static Node* parse_primitive(Token** rest, Token* tok);
 static Node* parse_binary(Token** rest, NodeKind kind, bool left_compose, Token* tok);
 static Node* parse_triple(Token** rest, NodeKind kind, Token* tok);
@@ -58,6 +60,17 @@ static Var* new_gvar(char* name, Type *ty) {
   return var;
 }
 
+static char* new_unique_name(void) {
+  static int id = 0;
+  char *buf = calloc(1, 20);
+  sprintf(buf, ".L..%d", id++);
+  return buf;
+}
+
+static Var* new_anon_gvar(Type* ty) {
+  return new_gvar(new_unique_name(), ty);
+}
+
 // ----- nodes
 static Node* new_node(NodeKind kind, Token* tok) {
   Node* node = calloc(1, sizeof(Node));
@@ -92,6 +105,13 @@ static Node* new_var_node(Var* var, Token* tok) {
   node->var = var;
   return node;
 }
+
+static Node* new_str_node(char* str, Token* tok) {
+  Node* node = new_node(ND_STR, tok);
+  node->str = str;
+  return node;
+}
+
 
 static Node* new_deref(Node* lhs, Token* tok) {
   Node* node = new_node(ND_DEREF, tok);
@@ -308,6 +328,21 @@ static Node* parse_number(Token** rest, Token* tok) {
   return node;
 }
 
+static Node* parse_str(Token** rest, Token* tok) {
+  Type* ty = array_of(ty_char, tok->len - 1);
+  Var* var = new_anon_gvar(ty);
+  Node* var_node = new_var_node(var, tok);
+  var_node->ty = ty;
+  Node* str_node = new_str_node(tok->str, tok);
+  str_node->ty = ty;
+  // since str is global data, we need to register a let node on `prog`
+  Node* let = new_let(var_node, str_node, tok);
+  let->next = prog;
+  prog = let;
+  *rest = tok->next;
+  return var_node;
+}
+
 static Node* parse_addr(Token** rest, Token* tok) {
   Token* tok_addr = tok;
   tok = tok->next;
@@ -421,6 +456,10 @@ static Node* parse_expr(Token** rest, Token *tok) {
     return parse_addr(rest, tok);
   }
 
+  if (tok->kind == TK_STR) {
+    return parse_str(rest, tok);
+  }
+
   error_tok(tok, "expect an expression");
 }
 
@@ -507,8 +546,7 @@ static Node* parse_global_var(Token** rest, Token *tok) {
 }
 
 Node* parse(Token* tok) {
-  Node head = {};
-  Node* cur = &head;
+  Node* cur = prog;
   while (tok->kind != TK_EOF) {
     if (is_function(tok)) {
       cur->next = parse_expr(&tok, tok);
@@ -521,5 +559,5 @@ Node* parse(Token* tok) {
       error_tok(tok, "invalid expression");
     }
   }
-  return head.next;
+  return prog;
 }

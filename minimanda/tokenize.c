@@ -102,12 +102,24 @@ static Token* new_token(TokenKind kind, Token* cur, char* str, int len) {
   return tok;
 }
 
-void correct_tokens(Token* tok) {
+static void correct_tokens(Token* tok) {
   for (Token *t = tok; t->kind != TK_EOF; t = t->next)
     if (is_keyword(t) || is_primitive(t))
       t->kind = TK_RESERVED;
 }
 
+
+static Token* read_string_literal(Token* cur, char* start) {
+  char* p = start + 1;
+  while (*p && *p != '"')
+    p++;
+  if (!*p)
+    error_at(start, "unclosed string literal");
+
+  Token* tok = new_token(TK_STR, cur, start, p - start + 1);
+  tok->str = strndup(start + 1, p - start - 1);
+  return tok;
+}
 
 // Tokenize `p` and returns new tokens.
 Token* tokenize(char* p) {
@@ -149,6 +161,13 @@ Token* tokenize(char* p) {
     
     if (*p == ']') {
       cur = new_token(TK_RBRACKET, cur, p++, 1);
+      continue;
+    }
+
+    // string
+    if (*p == '"') {
+      cur = read_string_literal(cur, p);
+      p += cur->len;
       continue;
     }
 

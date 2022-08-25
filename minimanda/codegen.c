@@ -231,7 +231,12 @@ static void emit_data(Node* prog) {
     printf("  .data\n");
     printf("  .globl %s\n", node->lhs->var->name);
     printf("%s:\n", node->lhs->var->name);
-    printf("  .zero %d\n", node->lhs->var->ty->size);
+    if (node->rhs && node->rhs->ty->kind == TY_ARRAY) {
+      for (int i = 0; i < node->lhs->ty->size; i++)
+        printf("  .byte %d\n", node->rhs->str[i]);
+    } else {
+      printf("  .zero %d\n", node->lhs->var->ty->size);
+    }
   }
 }
 

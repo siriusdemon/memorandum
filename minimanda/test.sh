@@ -106,4 +106,9 @@ assert 42 "(let g :int) (def main() -> int (let g :int 42) g)"
 assert 1 "(def main() -> int (let c: char 1) c)"
 assert 1 "(def main() -> int (sizeof char))"
 
+assert 97 '(def main() -> int (iget "abc" 0))'
+assert 98 '(def main() -> int (iget "abc" 1))'
+assert 99 '(def main() -> int (iget "abc" 2))'
+assert 0 '(def main() -> int (iget "abc" 3))'
+
 echo OK

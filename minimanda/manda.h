@@ -25,6 +25,7 @@ typedef enum {
   TK_LBRACKET,  // [
   TK_RBRACKET,  // ]
   TK_IDENT,     // identifier
+  TK_STR,       // C String
 } TokenKind;
 
 // Token type
@@ -35,6 +36,7 @@ struct Token {
   int val;        // If kind is TK_NUM, its value
   char* loc;      // Token location
   int len;        // Token length
+  char* str;      // String literal content including terminating '\0'
 };
 
 
@@ -66,6 +68,7 @@ typedef enum {
   ND_DEREF,       // a.*
   ND_NUM,         // integer
   ND_VAR,         // variable
+  ND_STR,         // string
   ND_IGET,        // iget
   ND_ISET,        // iset
   ND_LET,         // let
@@ -86,6 +89,8 @@ struct Node {
   // number
   int val;
 
+  char* str;
+
   // binary or triple
   Node* lhs;  // left
   Node* mhs;  // middle, only for triple
@@ -93,6 +98,7 @@ struct Node {
 
   // var
   Var* var;
+
 
   // if
   Node* cond;

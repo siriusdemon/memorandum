@@ -57,6 +57,9 @@ void add_type(Node* node) {
   case ND_VAR:
     node->ty = node->var->ty;
     return;
+  case ND_STR:
+    node->ty = node->var->ty;
+    return;
   case ND_IGET:
     if (node->lhs->ty->kind != TY_ARRAY) {
       error_tok(node->tok, "not an array\n");
