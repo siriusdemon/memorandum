@@ -427,42 +427,52 @@ static Node* parse_expr(Token** rest, Token *tok) {
 static Type* parse_base_type(Token** rest, Token* tok) {
   if (equal(tok, "int")) {
     *rest = tok->next;
-    return new_int_type();
+    return ty_int;
+  }
+  if (equal(tok, "char")) {
+    *rest = tok->next;
+    return ty_char;
   }
   error_tok(tok, "invalid base type");
+}
+
+static Type* parse_array_helper(Token** rest, Token* tok, char* pair) {
+  int len = get_number(parse_expr(&tok, tok));
+  if (tok->kind == TK_NUM) {
+    Type* base = parse_array_helper(&tok, tok, pair);
+    *rest = tok;
+    return array_of(base, len);
+  }
+  Type* base = parse_type(&tok, tok);
+  tok = skip(tok, pair);
+  *rest = tok;
+  return array_of(base, len);
 }
 
 static Type* parse_array_type(Token** rest, Token* tok) {
   char* pair = tok->kind == TK_LBRACKET? "]" : ")";
   tok = tok->next;
-  int len = get_number(parse_expr(&tok, tok));
-  Type* base = new_int_type();
-  Type* ty = base;
-  while (tok->kind == TK_NUM) {
-    int len = get_number(parse_expr(&tok, tok));
-    ty = array_of(ty, len);
-  }
-  *base = *parse_type(&tok, tok);
-  tok = skip(tok, pair);
-  *rest = tok;
-  return array_of(ty, len);
-}
-
-static Type* parse_pointer_type(Token** rest, Token* tok) {
-  Type* base = new_int_type();      // should be overridden
-  Type* ty = base;
-  while (equal(tok, "*")) {
-    ty = pointer_to(ty);
-    tok = tok->next;
-  }
-  if (tok->kind == TK_LBRACKET || tok->kind == TK_LPAREN) {
-    *base = *parse_array_type(&tok, tok);
-    *rest = tok;
-    return ty;
-  }
-  *base = *parse_base_type(&tok, tok);
+  Type* ty = parse_array_helper(&tok, tok, pair);
   *rest = tok;
   return ty;
+}
+
+
+static Type* parse_pointer_type(Token** rest, Token* tok) {
+  tok = tok->next;
+  if (equal(tok, "*")) {
+    Type* base = parse_pointer_type(&tok, tok);
+    *rest = tok;
+    return pointer_to(base);
+  }
+  if (tok->kind == TK_LBRACKET || tok->kind == TK_LPAREN) {
+    Type* base = parse_array_type(&tok, tok);
+    *rest = tok;
+    return pointer_to(base);
+  }
+  Type* base = parse_base_type(&tok, tok);
+  *rest = tok;
+  return pointer_to(base);
 }
 
 static Type* parse_type(Token** rest, Token* tok) {

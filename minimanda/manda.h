@@ -122,6 +122,7 @@ Node* parse(Token*);
 
 // type.c
 typedef enum {
+  TY_CHAR,
   TY_INT,
   TY_PTR,
   TY_ARRAY,
@@ -139,12 +140,13 @@ struct Type {
 
 extern Type* ty_int;
 extern Type* ty_void;
+extern Type* ty_char;
 
 bool is_integer(Type* ty);
 void add_type(Node* node);
-Type* new_int_type();
 Type* pointer_to(Type* base);
 Type* array_of(Type *base, int len);
+Type* placeholder();
 
 
 //

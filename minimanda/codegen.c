@@ -6,7 +6,8 @@ static void gen_expr(Node* node);
 
 // codegen
 static int depth;
-static char* argreg[] = {"%rdi", "%rsi", "%rdx", "%rcx", "%r8", "%r9"};
+static char *argreg8[] = {"%dil", "%sil", "%dl", "%cl", "%r8b", "%r9b"};
+static char *argreg64[] = {"%rdi", "%rsi", "%rdx", "%rcx", "%r8", "%r9"};
 static Node* current_fn;
 
 static int count(void) {
@@ -36,13 +37,20 @@ static void load(Type *ty) {
     return;
   }
 
-  printf("  mov (%%rax), %%rax\n");
+ if (ty->size == 1)
+    printf("  movsbq (%%rax), %%rax\n");
+  else
+    printf("  mov (%%rax), %%rax\n");
 }
 
 // Store %rax to an address that the stack top is pointing to.
-static void store(void) {
+static void store(Type* ty) {
   pop("%rdi");
-  printf("  mov %%rax, (%%rdi)\n");
+
+  if (ty->size == 1)
+    printf("  mov %%al, (%%rdi)\n");
+  else
+    printf("  mov %%rax, (%%rdi)\n");
 }
 
 static int align_to(int n, int align) {
@@ -83,14 +91,14 @@ static void gen_expr(Node *node) {
       gen_addr(node->lhs);
       push();
       gen_expr(node->rhs);
-      store();
+      store(node->lhs->ty);
     }
     return;
   case ND_SET:
     gen_addr(node->lhs);
     push();
     gen_expr(node->rhs);
-    store();
+    store(node->lhs->ty);
     return;
   case ND_NUM:
     printf("  mov $%d, %%rax\n", node->val);
@@ -133,7 +141,7 @@ static void gen_expr(Node *node) {
     }
 
     for (int i = nargs - 1; i >= 0; i--)
-      pop(argreg[i]);
+      pop(argreg64[i]);
     printf("  mov $0, %%rax\n");
     printf("  call %s\n", node->fn);
     return;
@@ -162,7 +170,7 @@ static void gen_expr(Node *node) {
       printf("  add %%rdi, %%rax\n");
       push();
       gen_expr(node->rhs);
-      store();
+      store(node->lhs->ty->base);
       return;
     case ND_IGET:
       gen_expr(node->lhs);
@@ -247,7 +255,10 @@ void codegen(Node* prog) {
 
     int i = 0;
     for (Node* arg = fn->args; arg; arg = arg->next)
-      printf("  mov %s, %d(%%rbp)\n", argreg[i++], arg->var->offset);
+      if (arg->var->ty->size == 1) 
+        printf("  mov %s, %d(%%rbp)\n", argreg8[i++], arg->var->offset);
+      else if (arg->var->ty->size == 8)
+        printf("  mov %s, %d(%%rbp)\n", argreg64[i++], arg->var->offset);
     // Emit code
     for (Node* e = fn->body; e; e = e->next) {
       gen_expr(e);

@@ -1,6 +1,7 @@
 #include "manda.h"
 
 Type* ty_int = &(Type){.kind = TY_INT, .size = 8};
+Type* ty_char = &(Type){.kind = TY_CHAR, .size = 1};
 Type* ty_void = &(Type){.kind = TY_VOID, .size = 0};
 
 bool is_integer(Type* ty) {
@@ -12,13 +13,6 @@ Type* pointer_to(Type* base) {
   ty->kind = TY_PTR;
   ty->size = 8;
   ty->base = base;
-  return ty;
-}
-
-Type* new_int_type() {
-  Type* ty = calloc(1, sizeof(Type));
-  ty->kind = TY_INT;
-  ty->size = 8;
   return ty;
 }
 
