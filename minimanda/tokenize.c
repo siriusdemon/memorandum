@@ -195,6 +195,12 @@ Token* tokenize(char* filename, char* p) {
       cur->len = p - q;
       continue;
     }
+    
+    // comment
+    if (*p == ';') {
+      while (*p && *p != '\n') p++;
+      continue;
+    }
 
     // List expression
     if (*p == '(') {

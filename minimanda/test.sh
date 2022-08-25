@@ -121,4 +121,16 @@ assert 12 '(def main() -> int (iget "\f" 0))'
 assert 13 '(def main() -> int (iget "\r" 0))'
 assert 27 '(def main() -> int (iget "\e" 0))'
 
+assert 42 "(def main() -> int 
+            ; (let hahahh: NonExist)
+            42);"
+
+ assert 42 ";;; 
+            (def main() -> ;int 
+            int
+            ; (let hahahh: NonExist)
+            42;;;;;;
+            );"
+            
+
 echo OK
