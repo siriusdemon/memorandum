@@ -5,6 +5,7 @@
 #include <ctype.h>
 #include <stdarg.h>
 #include <stdbool.h>
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -43,7 +44,7 @@ struct Token {
 bool equal(Token*, char*);
 bool is_primitive(Token*);
 Token* skip(Token*, char*);
-Token* tokenize(char*);
+Token* tokenize_file(char* filename);
 
 void error(char*, ...);
 void error_at(char* loc, char* fmt, ...);
