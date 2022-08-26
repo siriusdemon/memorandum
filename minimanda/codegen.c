@@ -93,6 +93,7 @@ static void assign_lvar_offsets(Node* prog) {
 }
 
 static void gen_expr(Node *node) {
+  println(" .loc 1 %d", node->tok->line_no);
   switch(node->kind) {
   case ND_LET:
     if (node->rhs) {
