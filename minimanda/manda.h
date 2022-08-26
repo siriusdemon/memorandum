@@ -140,10 +140,14 @@ typedef enum {
 
 struct Type {
   TypeKind kind;
-  Type* base;
   int size;
+  int align;
+
   // array
   int array_len;
+  
+  // pointer or array
+  Type* base;
 };
 
 extern Type* ty_int;
@@ -161,4 +165,5 @@ Type* placeholder();
 // codegen.c
 //
 void codegen(Node* prog, FILE* out);
+int align_to(int n, int align);
 #endif

@@ -267,6 +267,7 @@ Token* tokenize(char* filename, char* p) {
 
   new_token(TK_EOF, cur, p, 0);
   correct_tokens(head.next);
+  add_line_numbers(head.next);
   return head.next;
 }
 

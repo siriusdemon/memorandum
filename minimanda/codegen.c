@@ -61,7 +61,7 @@ static void store(Type* ty) {
     println("  mov %%rax, (%%rdi)");
 }
 
-static int align_to(int n, int align) {
+int align_to(int n, int align) {
   return (n + align - 1) / align * align;
 }
 
@@ -86,6 +86,7 @@ static void assign_lvar_offsets(Node* prog) {
     int offset = 0;
     for (Var *var = fn->locals; var; var = var->next) {
       offset += var->ty->size;
+      offset = align_to(offset, var->ty->align);
       var->offset = -offset;
     }
     fn->stack_size = align_to(offset, 16);

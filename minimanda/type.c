@@ -1,25 +1,30 @@
 #include "manda.h"
 
-Type* ty_int = &(Type){.kind = TY_INT, .size = 8};
-Type* ty_char = &(Type){.kind = TY_CHAR, .size = 1};
-Type* ty_void = &(Type){.kind = TY_VOID, .size = 0};
+Type* ty_int =  &(Type){.kind = TY_INT,  .size = 8, .align = 8};
+Type* ty_char = &(Type){.kind = TY_CHAR, .size = 1, .align = 1};
+Type* ty_void = &(Type){.kind = TY_VOID, .size = 0, .align = 0};
+
+
+static Type* new_type(TypeKind kind, int size, int align) {
+  Type* ty = calloc(1, sizeof(Type));
+  ty->kind = kind;
+  ty->size = size;
+  ty->align = align;
+  return ty;
+}
 
 bool is_integer(Type* ty) {
   return ty->kind == TY_INT;
 }
 
 Type* pointer_to(Type* base) {
-  Type* ty = calloc(1, sizeof(Type));
-  ty->kind = TY_PTR;
-  ty->size = 8;
+  Type* ty = new_type(TY_PTR, 8, 8);
   ty->base = base;
   return ty;
 }
 
 Type* array_of(Type* base, int len) {
-  Type* ty = calloc(1, sizeof(Type));
-  ty->kind = TY_ARRAY;
-  ty->size = base->size * len;
+  Type* ty = new_type(TY_ARRAY, base->size * len, base->align);
   ty->base = base;
   ty->array_len = len;
 }
