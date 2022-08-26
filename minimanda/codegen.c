@@ -76,8 +76,13 @@ static void gen_addr(Node *node) {
       println("  lea %s(%%rip), %%rax", node->var->name);
     }
     return;
+  case ND_STRUCT_REF:
+    gen_addr(node->lhs);
+    println(" add $%d, %%rax", node->member->offset);
+    return;
   }
-  error_tok(node->tok, "only variables support `&` operation.");
+    
+  error_tok(node->tok, "not an lvalue");
 }
 
 // Assign offsets to local variables.
@@ -114,6 +119,7 @@ static void gen_expr(Node *node) {
     println("  mov $%d, %%rax", node->val);
     return;
   case ND_VAR:
+  case ND_STRUCT_REF:
     gen_addr(node);
     load(node->ty);
     return;

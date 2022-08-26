@@ -24,6 +24,14 @@ assert() {
   fi
 }
 
+assert 42 "(defstruct My gender int age int)
+           (def main() -> int 42)"
+assert 12 "(defstruct My gender int age int)
+           (def main() -> int
+            (let a :My) 
+            (set a.gender 1)
+            (set a.age 12)
+            a.age)"
 assert 0 "(def main() -> int 0)"
 assert 42 "(def main() -> int 42)"
 assert 42 "(def main() -> int (+ 20 22))"
@@ -125,7 +133,7 @@ assert 42 "(def main() -> int
             ; (let hahahh: NonExist)
             42);"
 
- assert 42 ";;; 
+assert 42 ";;; 
             (def main() -> ;int 
             int
             ; (let hahahh: NonExist)

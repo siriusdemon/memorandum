@@ -13,6 +13,7 @@
 
 typedef struct Type Type;
 typedef struct Node Node;
+typedef struct Member Member;
 
 // 
 // tokenize.c
@@ -79,6 +80,8 @@ typedef enum {
   ND_WHILE,       // while
   ND_APP,         // application
   ND_FUNC,        // function
+  ND_STRUCT,      // defstruct
+  ND_STRUCT_REF,  // struct member ref, such as a.p
 } NodeKind;
 
 
@@ -101,6 +104,8 @@ struct Node {
   // var
   Var* var;
 
+  // struct member;
+  Member* member;
 
   // if
   Node* cond;
@@ -115,6 +120,13 @@ struct Node {
   Type* ret_ty; 
   int stack_size;
   
+};
+
+struct Member {
+  Member* next;
+  Token* tok;
+  Type* ty;
+  int offset;
 };
 
 struct Var {
@@ -136,6 +148,7 @@ typedef enum {
   TY_ARRAY,
   TY_FUNC,
   TY_VOID,
+  TY_STRUCT,
 } TypeKind;
 
 struct Type {
@@ -145,6 +158,9 @@ struct Type {
 
   // array
   int array_len;
+
+  // struct members
+  Member* members;
   
   // pointer or array
   Type* base;
@@ -156,9 +172,9 @@ extern Type* ty_char;
 
 bool is_integer(Type* ty);
 void add_type(Node* node);
+Type* new_struct_type(TypeKind kind, int size, int align, Member* members);
 Type* pointer_to(Type* base);
 Type* array_of(Type *base, int len);
-Type* placeholder();
 
 
 //

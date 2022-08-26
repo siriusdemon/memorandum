@@ -27,6 +27,13 @@ Type* array_of(Type* base, int len) {
   Type* ty = new_type(TY_ARRAY, base->size * len, base->align);
   ty->base = base;
   ty->array_len = len;
+  return ty;
+}
+
+Type* new_struct_type(TypeKind kind, int size, int align, Member* members) {
+  Type* ty = new_type(kind, size, align);
+  ty->members = members;
+  return ty;
 }
 
 void add_type(Node* node) {
@@ -70,6 +77,9 @@ void add_type(Node* node) {
       error_tok(node->tok, "not an array\n");
     }
     node->ty = node->lhs->ty->base;
+    return;
+  case ND_STRUCT_REF:
+    node->ty = node->member->ty;
     return;
   case ND_SET:
   case ND_ISET:

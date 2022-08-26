@@ -30,6 +30,8 @@ static void verror_at(int line_no, char *loc, char *fmt, va_list ap) {
 
   // Show the error message.
   int pos = loc - line + indent;
+  fprintf(stderr, "%*s", pos, ""); // print pos spaces.
+  fprintf(stderr, "^ ");
   vfprintf(stderr, fmt, ap);
   fprintf(stderr, "\n");
   exit(1);

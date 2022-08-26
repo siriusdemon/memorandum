@@ -3,6 +3,9 @@
 Node* prog = &(Node){};
 Var* locals;
 Var* globals;
+// struct tags, ty->member is struct member
+Var* tags;
+
 
 
 static Node* parse_global_var(Token** rest, Token *tok);
@@ -22,6 +25,7 @@ static Node* parse_deref(Token** rest, Token* tok);
 static Node* parse_addr(Token** rest, Token* tok);
 static Node* parse_application(Token** rest, Token* tok);
 static Node* parse_def(Token** rest, Token* tok);
+static Node* parse_defstruct(Token** rest, Token* tok);
 static Type* parse_type(Token** rest, Token* tok);
 
 static bool stop_parse(Token* tok) {
@@ -40,24 +44,39 @@ static Var* find_var(Token* tok) {
   return NULL;
 }
 
-static Var* new_lvar(char* name, Type *ty) {
-  Var *var = calloc(1, sizeof(Var));
+static Var* new_var(char* name, Type* ty) {
+  Var* var = calloc(1, sizeof(Var));
   var->name = name;
-  var->next = locals;
   var->ty = ty;
+  return var;
+}
+
+static Var* new_lvar(char* name, Type *ty) {
+  Var* var = new_var(name, ty);
+  var->next = locals;
   var->is_local = true;
   locals = var;
   return var;
 }
 
 static Var* new_gvar(char* name, Type *ty) {
-  Var *var = calloc(1, sizeof(Var));
-  var->name = name;
+  Var* var = new_var(name, ty);
   var->next = globals;
-  var->ty = ty;
   var->is_local = false;
   globals = var;
   return var;
+}
+
+static Member* new_member(Token* tok, Type* ty) {
+  Member* mem = calloc(1, sizeof(Member));
+  mem->tok = tok;
+  mem->ty = ty;
+  return mem;
+}
+
+static void push_tags(Var* tag) {
+  tag->next = tags;
+  tags = tag;
 }
 
 static char* new_unique_name(void) {
@@ -79,6 +98,12 @@ static Node* new_node(NodeKind kind, Token* tok) {
   return node;
 }
 
+static Node* new_unary(NodeKind kind, Node* lhs, Token* tok) {
+  Node* node = new_node(kind, tok);
+  node->lhs = lhs;
+  return node;
+}
+ 
 static Node* new_binary(NodeKind kind, Node* lhs, Node* rhs, Token* tok) {
   Node* node = new_node(kind, tok);
   node->lhs = lhs;
@@ -109,19 +134,6 @@ static Node* new_var_node(Var* var, Token* tok) {
 static Node* new_str_node(char* str, Token* tok) {
   Node* node = new_node(ND_STR, tok);
   node->str = str;
-  return node;
-}
-
-
-static Node* new_deref(Node* lhs, Token* tok) {
-  Node* node = new_node(ND_DEREF, tok);
-  node->lhs = lhs;
-  return node;
-}
-
-static Node* new_addr(Node* lhs, Token* tok) {
-  Node* node = new_node(ND_ADDR, tok);
-  node->lhs = lhs;
   return node;
 }
 
@@ -195,6 +207,8 @@ static Node* parse_list(Token** rest, Token* tok) {
     node = parse_while(&tok, tok);
   } else if (equal(tok, "def")) {
     node = parse_def(&tok, tok);
+  } else if (equal(tok, "defstruct")) {
+    node = parse_defstruct(&tok, tok);
   } else if (is_primitive(tok)) {  
     node = parse_primitive(&tok, tok);
   }  else {
@@ -253,9 +267,7 @@ static Node* parse_let(Token **rest, Token *tok, Var* (*alloc_var)(char* name, T
 static Node* parse_set(Token **rest, Token *tok) {
   Token* tok_set = tok;
   tok = skip(tok, "set");
-  Var* var = find_var(tok);
-  Node* lhs = new_var_node(var, tok);
-  tok = tok->next;
+  Node* lhs = parse_expr(&tok, tok);
   Node* rhs = parse_expr(&tok, tok);
   Node* node = new_set(lhs, rhs, tok_set);
   *rest = tok;
@@ -351,14 +363,14 @@ static Node* parse_addr(Token** rest, Token* tok) {
     error_tok(tok, "undefined variable");
   Node* var_node = new_var_node(var, tok);
   *rest = tok->next;
-  return new_addr(var_node, tok_addr);
+  return new_unary(ND_ADDR, var_node, tok_addr);
 }
 
 static Node* parse_deref(Token** rest, Token* tok) {
   Token* tok_deref = tok;
   tok = tok->next;
   Node* lhs = parse_expr(&tok, tok);
-  Node* node = new_deref(lhs, tok_deref);
+  Node* node = new_unary(ND_DEREF, lhs, tok_deref);
   *rest = tok;
   return node;
 }
@@ -377,7 +389,54 @@ static Node* parse_application(Token** rest, Token* tok) {
   return new_app(fn, head.next, tok_app);
 }
 
+static Member* get_struct_member(Type* ty, Token* tok) {
+  for (Member* mem = ty->members; mem; mem = mem->next)
+    if (mem->tok->len == tok->len &&
+        !strncmp(mem->tok->loc, tok->loc, tok->len))
+      return mem;
+  error_tok(tok, "no such member");
+}
 
+static Node* struct_ref(Node* lhs, Token* tok) {
+  add_type(lhs);
+  if (lhs->ty->kind != TY_STRUCT)
+    error_tok(lhs->tok, "not a struct");
+
+  Node* node = new_unary(ND_STRUCT_REF, lhs, tok);
+  node->member = get_struct_member(lhs->ty, tok);
+  return node;
+}
+
+static Node* parse_defstruct(Token** rest, Token* tok) {
+  Token* tok_struct = tok;
+  tok = tok->next;
+  char* name = strndup(tok->loc, tok->len);
+  tok = tok->next;
+
+  // parse member
+  Member head = {};
+  Member* cur = &head;
+  int offset = 0;
+  int max_align = 1;
+  while (!stop_parse(tok)) {
+    Token* mem_tok = tok;
+    Type* ty = parse_type(&tok, tok->next);
+    Member* mem = new_member(mem_tok, ty);
+    offset = align_to(offset, ty->align);
+    mem->offset = offset;
+    offset += ty->size;
+
+    cur->next = mem;
+    cur = mem;
+    max_align = ty->align < max_align ? max_align : ty->align;
+  }
+  Type* ty = new_struct_type(TY_STRUCT, align_to(offset, max_align), max_align, head.next);
+  Var* tag = new_var(name, ty);
+  push_tags(tag);
+  Node* node = new_node(ND_STRUCT, tok);
+  *rest = tok;
+  return node;
+}
 /* E.G.
 (def main() -> int
   (ret3))
@@ -443,10 +502,15 @@ static Node* parse_expr(Token** rest, Token *tok) {
       error_tok(tok, "undefined variable");
     Node* node = new_var_node(var, tok);
     tok = tok->next;
-    // field access
-    while (equal(tok, ".") && equal(tok->next, "*")) {
-      node = new_deref(node, tok->next);
-      tok = tok->next->next;
+    // either a deref or a struct member access
+    while (equal(tok, ".")) {
+      if (equal(tok->next, "*")) {
+        node = new_unary(ND_DEREF, node, tok->next);
+        tok = tok->next->next;
+      } else {
+        node = struct_ref(node, tok->next);
+        tok = tok->next->next;
+      }
     } 
     *rest = tok;
     return node;
@@ -459,7 +523,6 @@ static Node* parse_expr(Token** rest, Token *tok) {
   if (tok->kind == TK_STR) {
     return parse_str(rest, tok);
   }
-
   error_tok(tok, "expect an expression");
 }
 
@@ -471,6 +534,12 @@ static Type* parse_base_type(Token** rest, Token* tok) {
   if (equal(tok, "char")) {
     *rest = tok->next;
     return ty_char;
+  }
+  for (Var* t = tags; t; t = t->next) {
+    if (equal(tok, t->name)) {
+      *rest = tok->next;
+      return t->ty;
+    }
   }
   error_tok(tok, "invalid base type");
 }
@@ -524,17 +593,24 @@ static Type* parse_type(Token** rest, Token* tok) {
   return parse_base_type(rest, tok);
 }
 
+static bool is_certain_expr(Token* tok, char* form) {
+  return (tok->kind == TK_LPAREN || tok->kind == TK_LBRACKET) 
+        && equal(tok->next, form);
+}
+
 static bool is_function(Token* tok) {
-  bool islist = tok->kind == TK_LPAREN || tok->kind == TK_LBRACKET;
-  bool isdef = equal(tok->next, "def");
-  return islist && isdef;
+  return is_certain_expr(tok, "def");
 }
 
 static bool is_global_var(Token* tok) {
-  bool islist = tok->kind == TK_LPAREN || tok->kind == TK_LBRACKET;
-  bool islet = equal(tok->next, "let");
-  return islist && islet;
+  return is_certain_expr(tok, "let");
 }
+
+static bool is_defstruct(Token* tok) {
+  return is_certain_expr(tok, "defstruct");
+}
+
+
 
 static Node* parse_global_var(Token** rest, Token *tok) {
   char* pair = equal(tok, "(") ? ")" : "]";
@@ -544,6 +620,7 @@ static Node* parse_global_var(Token** rest, Token *tok) {
   *rest = tok;
   return node;
 }
+
 
 Node* parse(Token* tok) {
   Node* cur = prog;
@@ -555,6 +632,10 @@ Node* parse(Token* tok) {
     } else if (is_global_var(tok)) {
       cur->next = parse_global_var(&tok, tok);
       cur = cur->next;  
+    } else if (is_defstruct(tok)) {
+      char* pair = tok->kind == TK_LPAREN ? ")" : "]";
+      parse_defstruct(&tok, tok->next);
+      tok = skip(tok, pair);
     } else {
       error_tok(tok, "invalid expression");
     }
