@@ -38,6 +38,7 @@ struct Token {
   char* loc;      // Token location
   int len;        // Token length
   char* str;      // String literal content including terminating '\0'
+  int line_no;    // line number
 };
 
 
