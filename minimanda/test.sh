@@ -24,6 +24,21 @@ assert() {
   fi
 }
 
+assert 1 "(def ret (a int) -> int a) (def main() -> int (ret 1))"
+assert 12 "(def main() -> int
+            (let a :int 1)
+            (let b :int 2)
+            (+ (do 
+                (let c :int 9) 
+                (let b :int 8)
+                (let a :int 7)
+                c)
+                a b))"
+
+assert 3 "(def main() -> int 
+            (let a :int 3)
+            (do (let a: int 42))
+            a)"
 assert 3 "(def main() -> int (let a :int (do 1 2 3)) a)"
 assert 3 "(def main() -> int (do 1 2 3))"
 assert 42 "(defstruct My gender int age int)

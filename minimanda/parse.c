@@ -6,28 +6,54 @@ Var* globals;
 // struct tags, ty->member is struct member
 Var* tags;
 
+typedef struct Env Env;
+struct Env {
+  Var* var;
+  Env* next;
+};
+
+Env* new_env() {
+  Env* env = calloc(1, sizeof(Env));
+  return env;
+}
+
+Env* add_var(Env* oldenv, Var* var) {
+  Env* env = new_env();
+  env->var = var;
+  env->next = oldenv;
+  return env;
+}
+
+Var* lookup(Env* env, Token* tok) {
+  while (env!=NULL) {
+    if (strlen(env->var->name) == tok->len && !strncmp(tok->loc, env->var->name, tok->len))
+      return env->var;
+    else 
+      env = env->next;
+  }
+  return NULL;
+}
 
 
-static Node* parse_global_var(Token** rest, Token *tok);
-static Node* parse_expr(Token** rest, Token* tok);
-static Node* parse_list(Token** rest, Token* tok);
-static Node* parse_expr(Token** rest, Token* tok);
-static Node* parse_let(Token** rest, Token* tok, Var* (*alloc_var)(char* name, Type* ty));
-static Node* parse_set(Token** rest, Token* tok);
-static Node* parse_do(Token** rest, Token* tok);
-static Node* parse_if(Token** rest, Token* tok);
-static Node* parse_while(Token** rest, Token* tok);
-static Node* parse_number(Token** rest, Token* tok);
-static Node* parse_str(Token** rest, Token* tok);
-static Node* parse_primitive(Token** rest, Token* tok);
-static Node* parse_binary(Token** rest, NodeKind kind, bool left_compose, Token* tok);
-static Node* parse_triple(Token** rest, NodeKind kind, Token* tok);
-static Node* parse_deref(Token** rest, Token* tok);
-static Node* parse_addr(Token** rest, Token* tok);
-static Node* parse_application(Token** rest, Token* tok);
-static Node* parse_def(Token** rest, Token* tok);
-static Node* parse_defstruct(Token** rest, Token* tok);
-static Type* parse_type(Token** rest, Token* tok);
+static Node* parse_global_var(Token** rest, Token* tok, Env** newenv, Env* env);
+static Node* parse_list(Token** rest, Token* tok, Env** newenv, Env* env);
+static Node* parse_expr(Token** rest, Token* tok, Env** newenv, Env* env);
+static Node* parse_let(Token** rest, Token* tok, Env** newenv, Env* env, Var* (*alloc_var)(char* name, Type* ty));
+static Node* parse_set(Token** rest, Token* tok, Env* env);
+static Node* parse_do(Token** rest, Token* tok, Env* env);
+static Node* parse_if(Token** rest, Token* tok, Env* env);
+static Node* parse_while(Token** rest, Token* tok, Env* env);
+static Node* parse_number(Token** rest, Token* tok, Env* env);
+static Node* parse_str(Token** rest, Token* tok, Env* env);
+static Node* parse_primitive(Token** rest, Token* tok, Env* env);
+static Node* parse_binary(Token** rest, Token* tok, Env* env, NodeKind kind, bool left_compose);
+static Node* parse_triple(Token** rest, Token* tok, Env* env, NodeKind kind);
+static Node* parse_deref(Token** rest, Token* tok, Env* env);
+static Node* parse_addr(Token** rest, Token* tok, Env* env);
+static Node* parse_application(Token** rest, Token* tok, Env* env);
+static Node* parse_def(Token** rest, Token* tok, Env* env);
+static Node* parse_defstruct(Token** rest, Token* tok, Env* env);
+static Type* parse_type(Token** rest, Token* tok, Env* env);
 
 static bool stop_parse(Token* tok) {
   return tok->kind == TK_EOF || tok->kind == TK_RPAREN || tok->kind == TK_RBRACKET;
@@ -35,18 +61,6 @@ static bool stop_parse(Token* tok) {
 
 static bool is_list(Token* tok) {
   return tok->kind == TK_LPAREN || tok->kind == TK_LBRACKET;
-}
-
-// ----- variable 
-static Var* find_var(Token* tok) {
-  for (Var* var = locals; var; var = var->next)
-    if (strlen(var->name) == tok->len && !strncmp(tok->loc, var->name, tok->len))
-      return var;
-    
-  for (Var* var = globals; var; var = var->next)
-    if (strlen(var->name) == tok->len && !strncmp(tok->loc, var->name, tok->len))
-      return var;
-  return NULL;
 }
 
 static Var* new_var(char* name, Type* ty) {
@@ -203,55 +217,56 @@ static int get_number(Node* node) {
 
 
 // ------- AST Node
-static Node* parse_list(Token** rest, Token* tok) {
+static Node* parse_list(Token** rest, Token* tok, Env** newenv, Env* env) {
   Node* node;
   char* pair = equal(tok, "(") ? ")" : "]";
   tok = tok->next;
   if (equal(tok, "let")) {
-    node = parse_let(&tok, tok, new_lvar);
+    node = parse_let(&tok, tok, &env, env, new_lvar);
   } else if (equal(tok, "set")) {
-    node = parse_set(&tok, tok);
+    node = parse_set(&tok, tok, env);
   } else if (equal(tok, "if")) {
-    node = parse_if(&tok, tok);
+    node = parse_if(&tok, tok, env);
   } else if (equal(tok, "while")) {
-    node = parse_while(&tok, tok);
+    node = parse_while(&tok, tok, env);
   } else if (equal(tok, "def")) {
-    node = parse_def(&tok, tok);
+    node = parse_def(&tok, tok, env);
   } else if (equal(tok, "do")) {
-    node = parse_do(&tok, tok);
+    node = parse_do(&tok, tok, env);
   } else if (equal(tok, "defstruct")) {
-    node = parse_defstruct(&tok, tok);
+    node = parse_defstruct(&tok, tok, env);
   } else if (is_primitive(tok)) {  
-    node = parse_primitive(&tok, tok);
+    node = parse_primitive(&tok, tok, env);
   }  else {
-    node = parse_application(&tok, tok);
+    node = parse_application(&tok, tok, env);
   }
   tok = skip(tok, pair);
   *rest = tok;
+  *newenv = env;
   return node;
 }
 
-static Node* parse_if(Token **rest, Token *tok) {
+static Node* parse_if(Token** rest, Token* tok, Env* env) {
   Token* tok_if = tok;
   tok = skip(tok, "if");
-  Node* cond = parse_expr(&tok, tok);
-  Node* then = parse_expr(&tok, tok);
+  Node* cond = parse_expr(&tok, tok, &env, env);
+  Node* then = parse_expr(&tok, tok, &env, env);
   Node* els = NULL;
   if (!stop_parse(tok)) {
-    els = parse_expr(&tok, tok);
+    els = parse_expr(&tok, tok, &env, env);
   }
   Node* node = new_if(cond, then, els, tok_if);
   *rest = tok;
   return node;
 }
 
-static Node* parse_do(Token** rest, Token* tok) {
+static Node* parse_do(Token** rest, Token* tok, Env* env) {
   Token* tok_do = tok;
   tok = skip(tok, "do");
   Node head = {};
   Node* cur = &head;
   while (!stop_parse(tok)) {
-    cur->next = parse_expr(&tok, tok);
+    cur->next = parse_expr(&tok, tok, &env, env);
     cur = cur->next;
   }
   Node* node = new_do(head.next, tok_do);
@@ -259,14 +274,14 @@ static Node* parse_do(Token** rest, Token* tok) {
   return node;
 }
 
-static Node* parse_while(Token **rest, Token *tok) {
+static Node* parse_while(Token** rest, Token* tok, Env* env) {
   Token* tok_while = tok;
   tok = skip(tok, "while");
-  Node* cond = parse_expr(&tok, tok);
+  Node* cond = parse_expr(&tok, tok, &env, env);
   Node head = {};
   Node* cur = &head;
   while (!stop_parse(tok)) {
-    cur->next = parse_expr(&tok, tok);
+    cur->next = parse_expr(&tok, tok, &env, env);
     cur = cur->next;
   }
   Node* node = new_while(cond, head.next, tok_while);
@@ -275,71 +290,75 @@ static Node* parse_while(Token **rest, Token *tok) {
 }
 
 
-static Node* parse_let(Token **rest, Token *tok, Var* (*alloc_var)(char* name, Type* ty)) {
+static Node* parse_let(Token** rest, Token* tok, Env** newenv, Env* env, Var* (*alloc_var)(char* name, Type* ty)) {
   Token* tok_let = tok;
   tok = skip(tok, "let");
   Token* tok_var = tok;
+  if (tok_var->kind != TK_IDENT) {
+    error_tok(tok_var, "bad identifier");
+  }
   tok = skip(tok->next, ":");
-  Type* ty = parse_type(&tok, tok);
+  Type* ty = parse_type(&tok, tok, env);
   Var* var = alloc_var(strndup(tok_var->loc, tok_var->len), ty);
+  *newenv = add_var(env, var);  
   Node* lhs = new_var_node(var, tok_var);
   Node* rhs = NULL;
-  if (!stop_parse(tok)) { rhs = parse_expr(&tok, tok); }
+  if (!stop_parse(tok)) { rhs = parse_expr(&tok, tok, &env, env); }
   Node* node = new_let(lhs, rhs, tok_let);
   *rest = tok;
   return node;
 }
 
-static Node* parse_set(Token **rest, Token *tok) {
+static Node* parse_set(Token** rest, Token* tok, Env* env) {
   Token* tok_set = tok;
   tok = skip(tok, "set");
-  Node* lhs = parse_expr(&tok, tok);
-  Node* rhs = parse_expr(&tok, tok);
+  Node* lhs = parse_expr(&tok, tok, &env, env);
+  Node* rhs = parse_expr(&tok, tok, &env, env);
   Node* node = new_set(lhs, rhs, tok_set);
   *rest = tok;
   return node;
 }
 
-static Node* parse_sizeof(Token **rest, Token *tok) {
+static Node* parse_sizeof(Token** rest, Token* tok, Env* env) {
   Token* tok_sizeof = tok;
   tok = tok->next;
-  Type* ty = parse_type(&tok, tok);
+  Type* ty = parse_type(&tok, tok, env);
   *rest = tok;
   return new_num(ty->size, tok_sizeof);
 }
 
-static Node* parse_primitive(Token** rest, Token* tok) {
+static Node* parse_primitive(Token** rest, Token* tok, Env* env) {
 #define Match(t, handle)    if (equal(tok, t)) return handle;
-  Match("+", parse_binary(rest, ND_ADD, true, tok))
-  Match("-", parse_binary(rest, ND_SUB, true, tok))
-  Match("*", parse_binary(rest, ND_MUL, true, tok))
-  Match("/", parse_binary(rest, ND_DIV, true, tok))
-  Match("=", parse_binary(rest, ND_EQ, false, tok))
-  Match(">", parse_binary(rest, ND_GT, false, tok))
-  Match("<", parse_binary(rest, ND_LT, false, tok))
-  Match("<=", parse_binary(rest, ND_LE, false, tok))
-  Match(">=", parse_binary(rest, ND_GE, false, tok))
-  Match("iget", parse_binary(rest, ND_IGET, false, tok))
-  Match("iset", parse_triple(rest, ND_ISET, tok))
-  Match("deref", parse_deref(rest, tok))
-  Match("addr", parse_addr(rest, tok))
-  Match("sizeof", parse_sizeof(rest, tok))
+  Match("+", parse_binary(rest, tok, env, ND_ADD, true))
+  Match("-", parse_binary(rest, tok, env, ND_SUB, true))
+  Match("*", parse_binary(rest, tok, env, ND_MUL, true))
+  Match("/", parse_binary(rest, tok, env, ND_DIV, true))
+  Match("=", parse_binary(rest, tok, env, ND_EQ, false))
+  Match(">", parse_binary(rest, tok, env, ND_GT, false))
+  Match("<", parse_binary(rest, tok, env, ND_LT, false))
+  Match("<=", parse_binary(rest, tok, env, ND_LE, false))
+  Match(">=", parse_binary(rest, tok, env, ND_GE, false))
+  Match("iget", parse_binary(rest, tok, env, ND_IGET, false))
+  Match("iset", parse_triple(rest, tok, env, ND_ISET))
+  Match("deref", parse_deref(rest, tok, env))
+  Match("addr", parse_addr(rest, tok, env))
+  Match("sizeof", parse_sizeof(rest, tok, env))
 #undef Match
   error_tok(tok, "invalid primitive\n");
 }
 
-static Node* parse_binary(Token** rest, NodeKind kind, bool left_compose, Token* tok) {
+static Node* parse_binary(Token** rest, Token* tok, Env* env, NodeKind kind, bool left_compose) {
   Token* op_tok = tok;
   tok = tok->next;
   Node *lhs, *rhs, *node;
-  lhs = parse_expr(&tok, tok);
-  rhs = parse_expr(&tok, tok);
+  lhs = parse_expr(&tok, tok, &env, env);
+  rhs = parse_expr(&tok, tok, &env, env);
   node = new_binary(kind, lhs, rhs, op_tok);
 
   // perform left compose
   while (left_compose && !stop_parse(tok)) {
     lhs = node;  
-    rhs = parse_expr(&tok, tok);
+    rhs = parse_expr(&tok, tok, &env, env);
     node = new_binary(kind, lhs, rhs, op_tok);
   }
 
@@ -347,26 +366,26 @@ static Node* parse_binary(Token** rest, NodeKind kind, bool left_compose, Token*
   return node;
 }
 
-static Node* parse_triple(Token** rest, NodeKind kind, Token* tok) {
+static Node* parse_triple(Token** rest, Token* tok, Env* env, NodeKind kind) {
   Token* op_tok = tok;
   tok = tok->next;
   Node *lhs, *mhs, *rhs, *node;
-  lhs = parse_expr(&tok, tok);
-  mhs = parse_expr(&tok, tok);
-  rhs = parse_expr(&tok, tok);
+  lhs = parse_expr(&tok, tok, &env, env);
+  mhs = parse_expr(&tok, tok, &env, env);
+  rhs = parse_expr(&tok, tok, &env, env);
   node = new_triple(kind, lhs, mhs, rhs, op_tok);
 
   *rest = tok;
   return node;
 }
 
-static Node* parse_number(Token** rest, Token* tok) {
+static Node* parse_number(Token** rest, Token* tok, Env* env) {
   Node* node = new_num(tok->val, tok);
   *rest = tok->next;
   return node;
 }
 
-static Node* parse_str(Token** rest, Token* tok) {
+static Node* parse_str(Token** rest, Token* tok, Env* env) {
   Type* ty = array_of(ty_char, strlen(tok->str) + 1);
   Var* var = new_anon_gvar(ty);
   Node* var_node = new_var_node(var, tok);
@@ -381,10 +400,10 @@ static Node* parse_str(Token** rest, Token* tok) {
   return var_node;
 }
 
-static Node* parse_addr(Token** rest, Token* tok) {
+static Node* parse_addr(Token** rest, Token* tok, Env* env) {
   Token* tok_addr = tok;
   tok = tok->next;
-  Var* var = find_var(tok);
+  Var* var = lookup(env, tok);
   if (!var)
     error_tok(tok, "undefined variable");
   Node* var_node = new_var_node(var, tok);
@@ -392,23 +411,23 @@ static Node* parse_addr(Token** rest, Token* tok) {
   return new_unary(ND_ADDR, var_node, tok_addr);
 }
 
-static Node* parse_deref(Token** rest, Token* tok) {
+static Node* parse_deref(Token** rest, Token* tok, Env* env) {
   Token* tok_deref = tok;
   tok = tok->next;
-  Node* lhs = parse_expr(&tok, tok);
+  Node* lhs = parse_expr(&tok, tok, &env, env);
   Node* node = new_unary(ND_DEREF, lhs, tok_deref);
   *rest = tok;
   return node;
 }
 
-static Node* parse_application(Token** rest, Token* tok) {
+static Node* parse_application(Token** rest, Token* tok, Env* env) {
   Token* tok_app = tok;
   char* fn = strndup(tok->loc, tok->len);
   Node head = {};
   Node* cur = &head;
   tok = tok->next;
   while (!stop_parse(tok)) {
-    cur->next = parse_expr(&tok, tok); 
+    cur->next = parse_expr(&tok, tok, &env, env); 
     cur = cur->next;
   }
   *rest = tok;
@@ -433,7 +452,7 @@ static Node* struct_ref(Node* lhs, Token* tok) {
   return node;
 }
 
-static Node* parse_defstruct(Token** rest, Token* tok) {
+static Node* parse_defstruct(Token** rest, Token* tok, Env* env) {
   Token* tok_struct = tok;
   tok = tok->next;
   char* name = strndup(tok->loc, tok->len);
@@ -446,7 +465,7 @@ static Node* parse_defstruct(Token** rest, Token* tok) {
   int max_align = 1;
   while (!stop_parse(tok)) {
     Token* mem_tok = tok;
-    Type* ty = parse_type(&tok, tok->next);
+    Type* ty = parse_type(&tok, tok->next, env);
     Member* mem = new_member(mem_tok, ty);
     offset = align_to(offset, ty->align);
     mem->offset = offset;
@@ -467,7 +486,7 @@ static Node* parse_defstruct(Token** rest, Token* tok) {
 (def main() -> int
   (ret3))
 */
-static Node* parse_def(Token** rest, Token* tok) {
+static Node* parse_def(Token** rest, Token* tok, Env* env) {
   Token* tok_def = tok;
   tok = tok->next;
   char* fn = strndup(tok->loc, tok->len);
@@ -490,22 +509,23 @@ static Node* parse_def(Token** rest, Token* tok) {
   while (!stop_parse(tok)) {
     Token* tok_arg = tok;
     tok = tok->next;
-    Type* ty = parse_type(&tok, tok);
+    Type* ty = parse_type(&tok, tok, env);
     Var* var = new_lvar(strndup(tok_arg->loc, tok_arg->len), ty);
     cur->next = new_var_node(var, tok_arg);
     cur = cur->next;
+    env = add_var(env, var);
   }
   tok = skip(tok, pair);
 
   // return type
   tok = skip(tok, "->");
-  Type* ret_ty = parse_type(&tok, tok);
+  Type* ret_ty = parse_type(&tok, tok, env);
 
   // body
   Node head_body = {};
   cur = &head_body;
   while (!stop_parse(tok)) {
-    cur->next = parse_expr(&tok, tok);
+    cur->next = parse_expr(&tok, tok, &env, env);
     cur = cur->next;
   }
   *rest = tok;
@@ -513,17 +533,17 @@ static Node* parse_def(Token** rest, Token* tok) {
 }
 
 
-static Node* parse_expr(Token** rest, Token *tok) {
+static Node* parse_expr(Token** rest, Token* tok, Env** newenv, Env* env) {
   if (tok->kind == TK_LPAREN || tok->kind == TK_LBRACKET) {
-    return parse_list(rest, tok);
+    return parse_list(rest, tok, newenv, env);
   }
 
   if (tok->kind == TK_NUM) {
-    return parse_number(rest, tok);
+    return parse_number(rest, tok, env);
   }
 
   if (tok->kind == TK_IDENT) {
-    Var* var = find_var(tok);
+    Var* var = lookup(env, tok);
     if (!var)
       error_tok(tok, "undefined variable");
     Node* node = new_var_node(var, tok);
@@ -543,17 +563,17 @@ static Node* parse_expr(Token** rest, Token *tok) {
   }
 
   if (equal(tok, "&")) {
-    return parse_addr(rest, tok);
+    return parse_addr(rest, tok, env);
   }
 
   if (tok->kind == TK_STR) {
-    return parse_str(rest, tok);
+    return parse_str(rest, tok, env);
   }
   error_tok(tok, "expect an expression");
 }
 
 // ----------- TYPE
-static Type* parse_base_type(Token** rest, Token* tok) {
+static Type* parse_base_type(Token** rest, Token* tok, Env* env) {
   if (equal(tok, "int")) {
     *rest = tok->next;
     return ty_int;
@@ -571,53 +591,53 @@ static Type* parse_base_type(Token** rest, Token* tok) {
   error_tok(tok, "invalid base type");
 }
 
-static Type* parse_array_helper(Token** rest, Token* tok, char* pair) {
-  int len = get_number(parse_expr(&tok, tok));
+static Type* parse_array_helper(Token** rest, Token* tok, Env* env, char* pair) {
+  int len = get_number(parse_expr(&tok, tok, &env, env));
   if (tok->kind == TK_NUM) {
-    Type* base = parse_array_helper(&tok, tok, pair);
+    Type* base = parse_array_helper(&tok, tok, env, pair);
     *rest = tok;
     return array_of(base, len);
   }
-  Type* base = parse_type(&tok, tok);
+  Type* base = parse_type(&tok, tok, env);
   tok = skip(tok, pair);
   *rest = tok;
   return array_of(base, len);
 }
 
-static Type* parse_array_type(Token** rest, Token* tok) {
+static Type* parse_array_type(Token** rest, Token* tok, Env* env) {
   char* pair = tok->kind == TK_LBRACKET? "]" : ")";
   tok = tok->next;
-  Type* ty = parse_array_helper(&tok, tok, pair);
+  Type* ty = parse_array_helper(&tok, tok, env, pair);
   *rest = tok;
   return ty;
 }
 
 
-static Type* parse_pointer_type(Token** rest, Token* tok) {
+static Type* parse_pointer_type(Token** rest, Token* tok, Env* env) {
   tok = tok->next;
   if (equal(tok, "*")) {
-    Type* base = parse_pointer_type(&tok, tok);
+    Type* base = parse_pointer_type(&tok, tok, env);
     *rest = tok;
     return pointer_to(base);
   }
   if (tok->kind == TK_LBRACKET || tok->kind == TK_LPAREN) {
-    Type* base = parse_array_type(&tok, tok);
+    Type* base = parse_array_type(&tok, tok, env);
     *rest = tok;
     return pointer_to(base);
   }
-  Type* base = parse_base_type(&tok, tok);
+  Type* base = parse_base_type(&tok, tok, env);
   *rest = tok;
   return pointer_to(base);
 }
 
-static Type* parse_type(Token** rest, Token* tok) {
+static Type* parse_type(Token** rest, Token* tok, Env* env) {
   if (equal(tok, "*")) {
-    return parse_pointer_type(rest, tok);
+    return parse_pointer_type(rest, tok, env);
   }
   if (tok->kind == TK_LBRACKET || tok->kind == TK_LPAREN) {
-    return parse_array_type(rest, tok);
+    return parse_array_type(rest, tok, env);
   }
-  return parse_base_type(rest, tok);
+  return parse_base_type(rest, tok, env);
 }
 
 static bool is_certain_expr(Token* tok, char* form) {
@@ -639,29 +659,31 @@ static bool is_defstruct(Token* tok) {
 
 
 
-static Node* parse_global_var(Token** rest, Token *tok) {
+static Node* parse_global_var(Token** rest, Token* tok, Env** newenv, Env* env) {
   char* pair = equal(tok, "(") ? ")" : "]";
   tok = tok->next;
-  Node* node = parse_let(&tok, tok, new_gvar);
+  Node* node = parse_let(&tok, tok, &env, env, new_gvar);
   tok = skip(tok, pair);
   *rest = tok;
+  *newenv = env;
   return node;
 }
 
 
 Node* parse(Token* tok) {
   Node* cur = prog;
+  Env* env = NULL;
   while (tok->kind != TK_EOF) {
     if (is_function(tok)) {
-      cur->next = parse_expr(&tok, tok);
+      cur->next = parse_expr(&tok, tok, &env, env);
       cur = cur->next;
       add_type(cur);
     } else if (is_global_var(tok)) {
-      cur->next = parse_global_var(&tok, tok);
+      cur->next = parse_global_var(&tok, tok, &env, env);
       cur = cur->next;  
     } else if (is_defstruct(tok)) {
       char* pair = tok->kind == TK_LPAREN ? ")" : "]";
-      parse_defstruct(&tok, tok->next);
+      parse_defstruct(&tok, tok->next, env);
       tok = skip(tok, pair);
     } else {
       error_tok(tok, "invalid expression");
