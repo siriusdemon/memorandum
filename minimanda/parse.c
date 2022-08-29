@@ -3,8 +3,6 @@
 Node* prog = &(Node){};
 Var* locals;
 Var* globals;
-// struct tags, ty->member is struct member
-Var* tags;
 
 typedef struct Env Env;
 struct Env {
@@ -110,11 +108,6 @@ static Member* new_member(Token* tok, Type* ty) {
   mem->tok = tok;
   mem->ty = ty;
   return mem;
-}
-
-static void push_tags(Var* tag) {
-  tag->next = tags;
-  tags = tag;
 }
 
 static char* new_unique_name(void) {
