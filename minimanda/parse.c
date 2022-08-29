@@ -14,6 +14,7 @@ static Node* parse_list(Token** rest, Token* tok);
 static Node* parse_expr(Token** rest, Token* tok);
 static Node* parse_let(Token** rest, Token* tok, Var* (*alloc_var)(char* name, Type* ty));
 static Node* parse_set(Token** rest, Token* tok);
+static Node* parse_do(Token** rest, Token* tok);
 static Node* parse_if(Token** rest, Token* tok);
 static Node* parse_while(Token** rest, Token* tok);
 static Node* parse_number(Token** rest, Token* tok);
@@ -30,6 +31,10 @@ static Type* parse_type(Token** rest, Token* tok);
 
 static bool stop_parse(Token* tok) {
   return tok->kind == TK_EOF || tok->kind == TK_RPAREN || tok->kind == TK_RBRACKET;
+}
+
+static bool is_list(Token* tok) {
+  return tok->kind == TK_LPAREN || tok->kind == TK_LBRACKET;
 }
 
 // ----- variable 
@@ -160,6 +165,11 @@ static Node* new_if(Node* cond, Node* then, Node* els, Token* tok) {
   return node;
 }
 
+static Node* new_do(Node* exprs, Token* tok) {
+  Node* node = new_node(ND_DO, tok);
+  node->body = exprs;
+  return node;
+}
 static Node* new_while(Node* cond, Node* then, Token* tok) {
   Node* node = new_node(ND_WHILE, tok);
   node->cond = cond;
@@ -192,7 +202,7 @@ static int get_number(Node* node) {
 }
 
 
-
+// ------- AST Node
 static Node* parse_list(Token** rest, Token* tok) {
   Node* node;
   char* pair = equal(tok, "(") ? ")" : "]";
@@ -207,6 +217,8 @@ static Node* parse_list(Token** rest, Token* tok) {
     node = parse_while(&tok, tok);
   } else if (equal(tok, "def")) {
     node = parse_def(&tok, tok);
+  } else if (equal(tok, "do")) {
+    node = parse_do(&tok, tok);
   } else if (equal(tok, "defstruct")) {
     node = parse_defstruct(&tok, tok);
   } else if (is_primitive(tok)) {  
@@ -229,6 +241,20 @@ static Node* parse_if(Token **rest, Token *tok) {
     els = parse_expr(&tok, tok);
   }
   Node* node = new_if(cond, then, els, tok_if);
+  *rest = tok;
+  return node;
+}
+
+static Node* parse_do(Token** rest, Token* tok) {
+  Token* tok_do = tok;
+  tok = skip(tok, "do");
+  Node head = {};
+  Node* cur = &head;
+  while (!stop_parse(tok)) {
+    cur->next = parse_expr(&tok, tok);
+    cur = cur->next;
+  }
+  Node* node = new_do(head.next, tok_do);
   *rest = tok;
   return node;
 }
@@ -526,6 +552,7 @@ static Node* parse_expr(Token** rest, Token *tok) {
   error_tok(tok, "expect an expression");
 }
 
+// ----------- TYPE
 static Type* parse_base_type(Token** rest, Token* tok) {
   if (equal(tok, "int")) {
     *rest = tok->next;

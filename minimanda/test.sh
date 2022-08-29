@@ -24,6 +24,8 @@ assert() {
   fi
 }
 
+assert 3 "(def main() -> int (let a :int (do 1 2 3)) a)"
+assert 3 "(def main() -> int (do 1 2 3))"
 assert 42 "(defstruct My gender int age int)
            (def main() -> int 42)"
 assert 12 "(defstruct My gender int age int)

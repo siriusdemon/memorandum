@@ -58,30 +58,31 @@ void error_tok(Token* tok, char* fmt, ...);
 typedef struct Var Var;
 
 typedef enum {
-  ND_ADD,         // +
-  ND_SUB,         // -
-  ND_MUL,         // *
-  ND_DIV,         // /
-  ND_EQ,          // =
-  ND_LT,          // <
-  ND_LE,          // <=
-  ND_GT,          // >
-  ND_GE,          // >=
-  ND_ADDR,        // &
-  ND_DEREF,       // a.*
-  ND_NUM,         // integer
-  ND_VAR,         // variable
-  ND_STR,         // string
-  ND_IGET,        // iget
-  ND_ISET,        // iset
-  ND_LET,         // let
-  ND_SET,         // set
-  ND_IF,          // if
-  ND_WHILE,       // while
-  ND_APP,         // application
-  ND_FUNC,        // function
-  ND_STRUCT,      // defstruct
-  ND_STRUCT_REF,  // struct member ref, such as a.p
+  ND_ADD,                   // +
+  ND_SUB,                   // -
+  ND_MUL,                   // *
+  ND_DIV,                   // /
+  ND_EQ,                    // =
+  ND_LT,                    // <
+  ND_LE,                    // <=
+  ND_GT,                    // >
+  ND_GE,                    // >=
+  ND_ADDR,                  // &
+  ND_DEREF,                 // a.*
+  ND_NUM,                   // integer
+  ND_VAR,                   // variable
+  ND_STR,                   // string
+  ND_IGET,                  // iget
+  ND_ISET,                  // iset
+  ND_LET,                   // let
+  ND_SET,                   // set
+  ND_IF,                    // if
+  ND_DO,                    // do
+  ND_WHILE,                 // while
+  ND_APP,                   // application
+  ND_FUNC,                  // function
+  ND_STRUCT,                // defstruct
+  ND_STRUCT_REF,            // struct member ref, such as a.p
 } NodeKind;
 
 

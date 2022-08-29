@@ -36,6 +36,14 @@ Type* new_struct_type(TypeKind kind, int size, int align, Member* members) {
   return ty;
 }
 
+static Node* last_expr(Node* node) {
+  Node* cur = node;
+  while (cur->next) {
+    cur = cur->next;
+  }
+  return cur;
+}
+
 void add_type(Node* node) {
   if (!node || node->ty)
     return;
@@ -108,6 +116,9 @@ void add_type(Node* node) {
     } else if (node->els->ty == node->then->ty) {
       node->ty = node->then->ty;
     }
+    return;
+  case ND_DO:
+    node->ty = last_expr(node->body)->ty;
     return;
   case ND_APP:
     node->ty = ty_int;

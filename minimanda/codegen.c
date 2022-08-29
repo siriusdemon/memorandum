@@ -136,6 +136,10 @@ static void gen_expr(Node *node) {
     println(".L.end.%d:", c);
     return;
   }
+  case ND_DO: 
+    for (Node* n = node->body; n; n = n->next)
+      gen_expr(n);
+    return;
   case ND_WHILE: {
     int c = count();
     println(".L.while.%d:", c);
