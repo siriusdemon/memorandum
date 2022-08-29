@@ -94,6 +94,7 @@ void add_type(Node* node) {
   case ND_LET:
   case ND_WHILE:
   case ND_FUNC:
+  case ND_DEFSTRUCT:
     node->ty = ty_void;
     return;
   case ND_ADDR:

@@ -81,7 +81,7 @@ typedef enum {
   ND_WHILE,                 // while
   ND_APP,                   // application
   ND_FUNC,                  // function
-  ND_STRUCT,                // defstruct
+  ND_DEFSTRUCT,             // defstruct
   ND_STRUCT_REF,            // struct member ref, such as a.p
 } NodeKind;
 

@@ -10,6 +10,7 @@ typedef struct Env Env;
 struct Env {
   Var* var;
   Env* next;
+  bool is_tag;
 };
 
 Env* new_env() {
@@ -21,12 +22,21 @@ Env* add_var(Env* oldenv, Var* var) {
   Env* env = new_env();
   env->var = var;
   env->next = oldenv;
+  env->is_tag = false;
   return env;
 }
 
-Var* lookup(Env* env, Token* tok) {
+Env* add_tag(Env* oldenv, Var* var) {
+  Env* env = new_env();
+  env->var = var;
+  env->next = oldenv;
+  env->is_tag = true;
+  return env;
+}
+
+Var* lookup_var(Env* env, Token* tok) {
   while (env!=NULL) {
-    if (strlen(env->var->name) == tok->len && !strncmp(tok->loc, env->var->name, tok->len))
+    if (!env->is_tag && equal(tok, env->var->name))
       return env->var;
     else 
       env = env->next;
@@ -34,6 +44,15 @@ Var* lookup(Env* env, Token* tok) {
   return NULL;
 }
 
+Type* lookup_tag(Env* env, Token* tok) {
+  while (env!=NULL) {
+    if (env->is_tag && equal(tok, env->var->name))
+      return env->var->ty;
+    else 
+      env = env->next;
+  }
+  return NULL;
+}
 
 static Node* parse_global_var(Token** rest, Token* tok, Env** newenv, Env* env);
 static Node* parse_list(Token** rest, Token* tok, Env** newenv, Env* env);
@@ -52,7 +71,7 @@ static Node* parse_deref(Token** rest, Token* tok, Env* env);
 static Node* parse_addr(Token** rest, Token* tok, Env* env);
 static Node* parse_application(Token** rest, Token* tok, Env* env);
 static Node* parse_def(Token** rest, Token* tok, Env* env);
-static Node* parse_defstruct(Token** rest, Token* tok, Env* env);
+static Node* parse_defstruct(Token** rest, Token* tok, Env** newenv, Env* env);
 static Type* parse_type(Token** rest, Token* tok, Env* env);
 
 static bool stop_parse(Token* tok) {
@@ -234,7 +253,7 @@ static Node* parse_list(Token** rest, Token* tok, Env** newenv, Env* env) {
   } else if (equal(tok, "do")) {
     node = parse_do(&tok, tok, env);
   } else if (equal(tok, "defstruct")) {
-    node = parse_defstruct(&tok, tok, env);
+    node = parse_defstruct(&tok, tok, &env, env);
   } else if (is_primitive(tok)) {  
     node = parse_primitive(&tok, tok, env);
   }  else {
@@ -403,7 +422,7 @@ static Node* parse_str(Token** rest, Token* tok, Env* env) {
 static Node* parse_addr(Token** rest, Token* tok, Env* env) {
   Token* tok_addr = tok;
   tok = tok->next;
-  Var* var = lookup(env, tok);
+  Var* var = lookup_var(env, tok);
   if (!var)
     error_tok(tok, "undefined variable");
   Node* var_node = new_var_node(var, tok);
@@ -452,7 +471,7 @@ static Node* struct_ref(Node* lhs, Token* tok) {
   return node;
 }
 
-static Node* parse_defstruct(Token** rest, Token* tok, Env* env) {
+static Node* parse_defstruct(Token** rest, Token* tok, Env** newenv, Env* env) {
   Token* tok_struct = tok;
   tok = tok->next;
   char* name = strndup(tok->loc, tok->len);
@@ -477,10 +496,9 @@ static Node* parse_defstruct(Token** rest, Token* tok, Env* env) {
   }
   Type* ty = new_struct_type(TY_STRUCT, align_to(offset, max_align), max_align, head.next);
   Var* tag = new_var(name, ty);
-  push_tags(tag);
-  Node* node = new_node(ND_STRUCT, tok);
+  *newenv = add_tag(env, tag);
   *rest = tok;
-  return node;
+  return new_node(ND_DEFSTRUCT, tok_struct);
 }
 /* E.G.
 (def main() -> int
@@ -543,7 +561,7 @@ static Node* parse_expr(Token** rest, Token* tok, Env** newenv, Env* env) {
   }
 
   if (tok->kind == TK_IDENT) {
-    Var* var = lookup(env, tok);
+    Var* var = lookup_var(env, tok);
     if (!var)
       error_tok(tok, "undefined variable");
     Node* node = new_var_node(var, tok);
@@ -582,11 +600,10 @@ static Type* parse_base_type(Token** rest, Token* tok, Env* env) {
     *rest = tok->next;
     return ty_char;
   }
-  for (Var* t = tags; t; t = t->next) {
-    if (equal(tok, t->name)) {
-      *rest = tok->next;
-      return t->ty;
-    }
+  Type* ty = lookup_tag(env, tok);
+  if(ty) {
+    *rest = tok->next;
+    return ty;
   }
   error_tok(tok, "invalid base type");
 }
@@ -683,7 +700,7 @@ Node* parse(Token* tok) {
       cur = cur->next;  
     } else if (is_defstruct(tok)) {
       char* pair = tok->kind == TK_LPAREN ? ")" : "]";
-      parse_defstruct(&tok, tok->next, env);
+      parse_defstruct(&tok, tok->next, &env, env);
       tok = skip(tok, pair);
     } else {
       error_tok(tok, "invalid expression");

@@ -24,6 +24,17 @@ assert() {
   fi
 }
 
+assert 1 "(defstruct Man age int)
+          (def main() -> int
+            (let a :Man)
+            (set a.age 10)
+            (defstruct Man gender int)
+            (let b: Man)
+            (set b.gender 1)
+            b.gender)"
+assert 1 "(def main() -> int
+            (defstruct Man gender int)
+            1)"
 assert 1 "(def ret (a int) -> int a) (def main() -> int (ret 1))"
 assert 12 "(def main() -> int
             (let a :int 1)
