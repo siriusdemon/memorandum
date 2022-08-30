@@ -23,6 +23,14 @@ assert() {
     exit 1
   fi
 }
+
+assert 2 "(def main() -> int (sizeof short))"
+assert 15 "(def main() -> int 
+             (+ (sizeof short)
+                (sizeof int) 
+                (sizeof char)
+                (sizeof long)))"
+
 assert 217 "(def main() -> long
                 (defstruct Life money long health int)
                 (let my-life :Life)

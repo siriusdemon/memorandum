@@ -1,6 +1,7 @@
 #include "manda.h"
 
 Type* ty_int =  &(Type){.kind = TY_INT,  .size = 4, .align = 4};
+Type* ty_short= &(Type){.kind = TY_SHORT,.size = 2, .align = 2};
 Type* ty_long = &(Type){.kind = TY_LONG, .size = 8, .align = 8};
 Type* ty_char = &(Type){.kind = TY_CHAR, .size = 1, .align = 1};
 Type* ty_void = &(Type){.kind = TY_VOID, .size = 0, .align = 0};

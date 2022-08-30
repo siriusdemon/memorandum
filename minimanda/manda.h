@@ -147,6 +147,7 @@ Node* parse(Token*);
 typedef enum {
   TY_CHAR,
   TY_INT,
+  TY_SHORT,
   TY_LONG,
   TY_PTR,
   TY_ARRAY,
@@ -175,6 +176,7 @@ extern Type* ty_int;
 extern Type* ty_void;
 extern Type* ty_char;
 extern Type* ty_long;
+extern Type* ty_short;
 
 void add_type(Node* node);
 Type* new_struct_type(int size, int align, Member* members);

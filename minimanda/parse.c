@@ -248,6 +248,8 @@ static Node* parse_list(Token** rest, Token* tok, Env** newenv, Env* env) {
     node = parse_do(&tok, tok, env);
   } else if (equal(tok, "defstruct")) {
     node = parse_defstruct(&tok, tok, &env, env);
+  } else if (equal(tok, "defunion")) {
+    node = parse_defunion(&tok, tok, &env, env);
   } else if (is_primitive(tok)) {  
     node = parse_primitive(&tok, tok, env);
   }  else {
@@ -470,7 +472,6 @@ static Node* parse_defunion(Token** rest, Token* tok, Env** newenv, Env* env) {
   tok = tok->next;
   char* name = strndup(tok->loc, tok->len);
   tok = tok->next;
-
   // parse member
   Member head = {};
   Member* cur = &head;
@@ -621,6 +622,10 @@ static Type* parse_base_type(Token** rest, Token* tok, Env* env) {
   if (equal(tok, "char")) {
     *rest = tok->next;
     return ty_char;
+  }
+  if (equal(tok, "short")) {
+    *rest = tok->next;
+    return ty_short;
   }
   if (equal(tok, "long")) {
     *rest = tok->next;
