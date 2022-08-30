@@ -71,6 +71,7 @@ static Node* parse_application(Token** rest, Token* tok, Env* env);
 static Node* parse_def(Token** rest, Token* tok, Env* env);
 static Node* parse_defstruct(Token** rest, Token* tok, Env** newenv, Env* env);
 static Node* parse_defunion(Token** rest, Token* tok, Env** newenv, Env* env);
+static Node* parse_deftype(Token** rest, Token* tok, Env** newenv, Env* env);
 static Type* parse_type(Token** rest, Token* tok, Env* env);
 
 static bool stop_parse(Token* tok) {
@@ -250,6 +251,8 @@ static Node* parse_list(Token** rest, Token* tok, Env** newenv, Env* env) {
     node = parse_defstruct(&tok, tok, &env, env);
   } else if (equal(tok, "defunion")) {
     node = parse_defunion(&tok, tok, &env, env);
+  } else if (equal(tok, "deftype")) {
+    node = parse_deftype(&tok, tok, &env, env);
   } else if (is_primitive(tok)) {  
     node = parse_primitive(&tok, tok, env);
   }  else {
@@ -465,6 +468,18 @@ static Node* struct_ref(Node* lhs, Token* tok) {
   Node* node = new_unary(ND_STRUCT_REF, lhs, tok);
   node->member = get_struct_member(lhs->ty, tok);
   return node;
+}
+
+static Node* parse_deftype(Token** rest, Token* tok, Env** newenv, Env* env) {
+  Token* tok_deftype = tok;
+  tok = tok->next;
+  char* name = strndup(tok->loc, tok->len);
+  tok = tok->next;
+  Type* ty = parse_type(&tok, tok, env);
+  Var* tag = new_var(name, ty);
+  *newenv = add_tag(env, tag);
+  *rest = tok;
+  return new_node(ND_DEFUNION, tok_deftype);
 }
 
 static Node* parse_defunion(Token** rest, Token* tok, Env** newenv, Env* env) {
