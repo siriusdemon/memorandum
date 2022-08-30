@@ -24,6 +24,12 @@ assert() {
   fi
 }
 
+assert 26 "(defstruct S A int B int C int D int)
+           (def main() -> int
+             (let S :S)
+             (set S.A 10)
+             (+ (sizeof S) S.A))"
+
 assert 101 "(defstruct S2 age int gender int)
            (defunion U2 X int Y S2)
            (def main() -> int
@@ -165,7 +171,7 @@ assert 42 "(def main() -> int
 
 assert 8 "(def main() -> int (sizeof *int))"
 assert 40 "(def main() -> int (sizeof [5 *int]))"
-assert 200 "(def main() -> int (sizeof [5 5 int]))"
+assert 100 "(def main() -> int (sizeof [5 5 int]))"
 
 assert 0 "(let g :int) (def main() -> int g)"
 assert 42 "(let g :int) (def main() -> int (set g 42) g)"

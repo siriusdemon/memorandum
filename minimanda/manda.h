@@ -184,6 +184,9 @@ Type* array_of(Type *base, int len);
 //
 // codegen.c
 //
+#define unreachable() \
+  error("internal error at %s:%d", __FILE__, __LINE__)
+
 void codegen(Node* prog, FILE* out);
 int align_to(int n, int align);
 #endif

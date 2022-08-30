@@ -1,5 +1,6 @@
 #include "manda.h"
 
+
 static void gen_addr(Node* node);
 static void gen_expr(Node* node);
 
@@ -8,6 +9,7 @@ static void gen_expr(Node* node);
 static FILE *output_file;
 static int depth;
 static char *argreg8[] = {"%dil", "%sil", "%dl", "%cl", "%r8b", "%r9b"};
+static char *argreg32[] = {"%edi", "%esi", "%edx", "%ecx", "%r8d", "%r9d"};
 static char *argreg64[] = {"%rdi", "%rsi", "%rdx", "%rcx", "%r8", "%r9"};
 static Node* current_fn;
 
@@ -47,6 +49,8 @@ static void load(Type *ty) {
 
  if (ty->size == 1)
     println("  movsbq (%%rax), %%rax");
+  else if (ty->size == 4)
+    println("  movsxd (%%rax), %%rax");
   else
     println("  mov (%%rax), %%rax");
 }
@@ -65,8 +69,25 @@ static void store(Type* ty) {
 
   if (ty->size == 1)
     println("  mov %%al, (%%rdi)");
+  else if (ty->size == 4)
+    println("  mov %%eax, (%%rdi)");
   else
     println("  mov %%rax, (%%rdi)");
+}
+
+static void store_gp(int r, int offset, int sz) {
+  switch (sz) {
+  case 1:
+    println("  mov %s, %d(%%rbp)", argreg8[r], offset);
+    return;
+  case 4:
+    println("  mov %s, %d(%%rbp)", argreg32[r], offset);
+    return;
+  case 8:
+    println("  mov %s, %d(%%rbp)", argreg64[r], offset);
+    return;
+  }
+  unreachable();
 }
 
 int align_to(int n, int align) {
@@ -292,10 +313,7 @@ void codegen(Node* prog, FILE* out) {
 
     int i = 0;
     for (Node* arg = fn->args; arg; arg = arg->next)
-      if (arg->var->ty->size == 1) 
-        println("  mov %s, %d(%%rbp)", argreg8[i++], arg->var->offset);
-      else if (arg->var->ty->size == 8)
-        println("  mov %s, %d(%%rbp)", argreg64[i++], arg->var->offset);
+      store_gp(i++, arg->var->offset, arg->var->ty->size);
     // Emit code
     for (Node* e = fn->body; e; e = e->next) {
       gen_expr(e);
