@@ -151,7 +151,7 @@ static Node* new_triple(NodeKind kind, Node* lhs, Node* mhs, Node* rhs, Token* t
   return node;
 }
 
-static Node* new_num(int val, Token* tok) {
+static Node* new_num(int64_t val, Token* tok) {
   Node* node = new_node(ND_NUM, tok);
   node->val = val;
   return node;
@@ -621,6 +621,10 @@ static Type* parse_base_type(Token** rest, Token* tok, Env* env) {
   if (equal(tok, "char")) {
     *rest = tok->next;
     return ty_char;
+  }
+  if (equal(tok, "long")) {
+    *rest = tok->next;
+    return ty_long;
   }
   Type* ty = lookup_tag(env, tok);
   if(ty) {

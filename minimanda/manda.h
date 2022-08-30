@@ -5,6 +5,7 @@
 #include <ctype.h>
 #include <stdarg.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,7 +36,7 @@ typedef struct Token Token;
 struct Token {
   TokenKind kind; // Token kind
   Token* next;    // Next token
-  int val;        // If kind is TK_NUM, its value
+  int64_t val;        // If kind is TK_NUM, its value
   char* loc;      // Token location
   int len;        // Token length
   char* str;      // String literal content including terminating '\0'
@@ -94,7 +95,7 @@ struct Node {
   Type* ty;
 
   // number
-  int val;
+  int64_t val;
 
   char* str;
 
@@ -146,6 +147,7 @@ Node* parse(Token*);
 typedef enum {
   TY_CHAR,
   TY_INT,
+  TY_LONG,
   TY_PTR,
   TY_ARRAY,
   TY_FUNC,
@@ -172,8 +174,8 @@ struct Type {
 extern Type* ty_int;
 extern Type* ty_void;
 extern Type* ty_char;
+extern Type* ty_long;
 
-bool is_integer(Type* ty);
 void add_type(Node* node);
 Type* new_struct_type(int size, int align, Member* members);
 Type* new_union_type(int size, int align, Member* members);

@@ -23,6 +23,18 @@ assert() {
     exit 1
   fi
 }
+assert 217 "(def main() -> long
+                (defstruct Life money long health int)
+                (let my-life :Life)
+                (set my-life.money (* 10 20))
+                (set my-life.health 1)
+                (+ my-life.money my-life.health (sizeof Life))
+            )"
+
+assert 200 "(def main() -> long
+            (let a :long (* 10 20))
+            200)"
+assert 8 "(def main() -> int (sizeof long))"
 
 assert 26 "(defstruct S A int B int C int D int)
            (def main() -> int
