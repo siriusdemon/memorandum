@@ -24,6 +24,24 @@ assert() {
   fi
 }
 
+assert 101 "(defstruct S2 age int gender int)
+           (defunion U2 X int Y S2)
+           (def main() -> int
+             (let a :U2) 
+             (set a.X 1)
+             (set a.Y.gender 100)
+             (let b :U2 a)
+             (+ b.Y.age b.Y.gender))"
+
+assert 184 "(defstruct Color R int G int B int)
+            (def main() -> int
+              (let a : Color) 
+              (set a.R 100)
+              (set a.G 42)
+              (set a.B 42)
+              (let b : Color a)
+              (+ b.R b.G b.B))"
+
 assert 100 "(defstruct S2 age int gender int)
            (defunion U2 X int Y S2)
            (def main() -> int
