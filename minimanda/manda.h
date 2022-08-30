@@ -83,6 +83,7 @@ typedef enum {
   ND_FUNC,                  // function
   ND_DEFSTRUCT,             // defstruct
   ND_STRUCT_REF,            // struct member ref, such as a.p
+  ND_DEFUNION,              // defunion
 } NodeKind;
 
 
@@ -150,6 +151,7 @@ typedef enum {
   TY_FUNC,
   TY_VOID,
   TY_STRUCT,
+  TY_UNION,
 } TypeKind;
 
 struct Type {
@@ -173,7 +175,8 @@ extern Type* ty_char;
 
 bool is_integer(Type* ty);
 void add_type(Node* node);
-Type* new_struct_type(TypeKind kind, int size, int align, Member* members);
+Type* new_struct_type(int size, int align, Member* members);
+Type* new_union_type(int size, int align, Member* members);
 Type* pointer_to(Type* base);
 Type* array_of(Type *base, int len);
 

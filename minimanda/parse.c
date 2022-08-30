@@ -70,6 +70,7 @@ static Node* parse_addr(Token** rest, Token* tok, Env* env);
 static Node* parse_application(Token** rest, Token* tok, Env* env);
 static Node* parse_def(Token** rest, Token* tok, Env* env);
 static Node* parse_defstruct(Token** rest, Token* tok, Env** newenv, Env* env);
+static Node* parse_defunion(Token** rest, Token* tok, Env** newenv, Env* env);
 static Type* parse_type(Token** rest, Token* tok, Env* env);
 
 static bool stop_parse(Token* tok) {
@@ -456,12 +457,40 @@ static Member* get_struct_member(Type* ty, Token* tok) {
 
 static Node* struct_ref(Node* lhs, Token* tok) {
   add_type(lhs);
-  if (lhs->ty->kind != TY_STRUCT)
-    error_tok(lhs->tok, "not a struct");
+  if (lhs->ty->kind != TY_STRUCT && lhs->ty->kind != TY_UNION)
+    error_tok(lhs->tok, "not a struct/union");
 
   Node* node = new_unary(ND_STRUCT_REF, lhs, tok);
   node->member = get_struct_member(lhs->ty, tok);
   return node;
+}
+
+static Node* parse_defunion(Token** rest, Token* tok, Env** newenv, Env* env) {
+  Token* tok_union = tok;
+  tok = tok->next;
+  char* name = strndup(tok->loc, tok->len);
+  tok = tok->next;
+
+  // parse member
+  Member head = {};
+  Member* cur = &head;
+  int max_align = 1;
+  int max_size = 0;
+  while (!stop_parse(tok)) {
+    Token* mem_tok = tok;
+    Type* ty = parse_type(&tok, tok->next, env);
+    Member* mem = new_member(mem_tok, ty);
+    mem->offset = 0;
+    cur->next = mem;
+    cur = mem;
+    max_align = ty->align < max_align ? max_align : ty->align;
+    max_size = ty->size < max_size ? max_size : ty->size;
+  }
+  Type* ty = new_union_type(max_size, max_align, head.next);
+  Var* tag = new_var(name, ty);
+  *newenv = add_tag(env, tag);
+  *rest = tok;
+  return new_node(ND_DEFUNION, tok_union);
 }
 
 static Node* parse_defstruct(Token** rest, Token* tok, Env** newenv, Env* env) {
@@ -487,7 +516,7 @@ static Node* parse_defstruct(Token** rest, Token* tok, Env** newenv, Env* env) {
     cur = mem;
     max_align = ty->align < max_align ? max_align : ty->align;
   }
-  Type* ty = new_struct_type(TY_STRUCT, align_to(offset, max_align), max_align, head.next);
+  Type* ty = new_struct_type(align_to(offset, max_align), max_align, head.next);
   Var* tag = new_var(name, ty);
   *newenv = add_tag(env, tag);
   *rest = tok;
@@ -559,7 +588,7 @@ static Node* parse_expr(Token** rest, Token* tok, Env** newenv, Env* env) {
       error_tok(tok, "undefined variable");
     Node* node = new_var_node(var, tok);
     tok = tok->next;
-    // either a deref or a struct member access
+    // either a deref or a struct/union member access
     while (equal(tok, ".")) {
       if (equal(tok->next, "*")) {
         node = new_unary(ND_DEREF, node, tok->next);
@@ -667,6 +696,10 @@ static bool is_defstruct(Token* tok) {
   return is_certain_expr(tok, "defstruct");
 }
 
+static bool is_defunion(Token* tok) {
+  return is_certain_expr(tok, "defunion");
+}
+
 
 
 static Node* parse_global_var(Token** rest, Token* tok, Env** newenv, Env* env) {
@@ -694,6 +727,10 @@ Node* parse(Token* tok) {
     } else if (is_defstruct(tok)) {
       char* pair = tok->kind == TK_LPAREN ? ")" : "]";
       parse_defstruct(&tok, tok->next, &env, env);
+      tok = skip(tok, pair);
+    } else if (is_defunion(tok)) {
+      char* pair = tok->kind == TK_LPAREN ? ")" : "]";
+      parse_defunion(&tok, tok->next, &env, env);
       tok = skip(tok, pair);
     } else {
       error_tok(tok, "invalid expression");

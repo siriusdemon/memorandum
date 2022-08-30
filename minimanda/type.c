@@ -30,11 +30,18 @@ Type* array_of(Type* base, int len) {
   return ty;
 }
 
-Type* new_struct_type(TypeKind kind, int size, int align, Member* members) {
-  Type* ty = new_type(kind, size, align);
+Type* new_struct_type(int size, int align, Member* members) {
+  Type* ty = new_type(TY_STRUCT, size, align);
   ty->members = members;
   return ty;
 }
+
+Type* new_union_type(int size, int align, Member* members) {
+  Type* ty = new_type(TY_UNION, size, align);
+  ty->members = members;
+  return ty;
+}
+
 
 static Node* last_expr(Node* node) {
   Node* cur = node;
@@ -95,6 +102,7 @@ void add_type(Node* node) {
   case ND_WHILE:
   case ND_FUNC:
   case ND_DEFSTRUCT:
+  case ND_DEFUNION:
     node->ty = ty_void;
     return;
   case ND_ADDR:
