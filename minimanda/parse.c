@@ -479,7 +479,7 @@ static Node* parse_deftype(Token** rest, Token* tok, Env** newenv, Env* env) {
   Var* tag = new_var(name, ty);
   *newenv = add_tag(env, tag);
   *rest = tok;
-  return new_node(ND_DEFUNION, tok_deftype);
+  return new_node(ND_DEFTYPE, tok_deftype);
 }
 
 static Node* parse_defunion(Token** rest, Token* tok, Env** newenv, Env* env) {
@@ -693,7 +693,19 @@ static Type* parse_pointer_type(Token** rest, Token* tok, Env* env) {
   return pointer_to(base);
 }
 
+static Type* parse_typeof(Token** rest, Token* tok, Env* env) {
+    char* pair = tok->kind == TK_LBRACKET ? "]" : ")";
+    tok = skip(tok->next, "typeof");
+    Node* e = parse_expr(&tok, tok, &env, env);
+    add_type(e);
+    *rest = skip(tok, pair); 
+    return e->ty;
+}
+
 static Type* parse_type(Token** rest, Token* tok, Env* env) {
+  if (is_list(tok) && equal(tok->next, "typeof")) {
+    return parse_typeof(rest, tok, env);
+  }
   if (equal(tok, "*")) {
     return parse_pointer_type(rest, tok, env);
   }

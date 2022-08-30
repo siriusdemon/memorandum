@@ -24,6 +24,16 @@ assert() {
   fi
 }
 
+
+assert 36 "(def main() -> int
+            (defstruct X gender int age int)
+            (let x :X)
+            (let y :(typeof x))
+            (set y.age 20)
+            (+ (sizeof X) (sizeof (typeof y)) y.age))"
+
+assert 20 "(def main() -> int (* 5 (sizeof (typeof 1))))"
+
 assert 28 "(def main() -> int
             (defstruct Man gender int age int)
             (deftype X Man)

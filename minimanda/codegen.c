@@ -140,6 +140,7 @@ static void gen_expr(Node *node) {
   switch(node->kind) {
   case ND_DEFSTRUCT:
   case ND_DEFUNION:
+  case ND_DEFTYPE:
     return;
   case ND_LET:
     if (node->rhs) {
