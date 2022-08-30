@@ -249,22 +249,34 @@ static void gen_expr(Node *node) {
   gen_expr(node->lhs);
   pop("%rdi");
   
+  char *ax, *di;
+  if (node->lhs->ty->kind == TY_LONG || node->lhs->ty->base) {
+    ax = "%rax";
+    di = "%rdi";
+  } else {
+    ax = "%eax";
+    di = "%edi";
+  }
   // for compare operation.
   char* cc = NULL;
 
   switch (node->kind) {
   case ND_ADD:
-    println("  add %%rdi, %%rax");
+    println("  add %s, %s", di, ax);
     return;
   case ND_SUB:
-    println("  sub %%rdi, %%rax");
+    println("  sub %s, %s", di, ax);
     return;
   case ND_MUL:
-    println("  imul %%rdi, %%rax");
+    println("  imul %s, %s", di, ax);
     return;
   case ND_DIV:
-    println("  cqo");
-    println("  idiv %%rdi");
+    if (node->lhs->ty->size == 8) {
+      println("  cqo");
+    } else {
+      println("  cdq");
+    }
+    println("  idiv %s", di);
     return;
   case ND_EQ: cc = "e"; break;
   case ND_LT: cc = "l"; break;
@@ -273,7 +285,7 @@ static void gen_expr(Node *node) {
   case ND_GT: cc = "g"; break;
  }
   if (cc) {
-    println("  cmp %%rdi, %%rax");
+    println("  cmp %s, %s", di, ax);
     println("  set%s %%al", cc);
     println("  movzb %%al, %%rax");
     return;
