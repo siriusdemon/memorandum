@@ -358,6 +358,7 @@ static Node* parse_primitive(Token** rest, Token* tok, Env* env) {
   Match("-", parse_binary(rest, tok, env, ND_SUB, true))
   Match("*", parse_binary(rest, tok, env, ND_MUL, true))
   Match("/", parse_binary(rest, tok, env, ND_DIV, true))
+  Match("mod", parse_binary(rest, tok, env, ND_MOD, false))
   Match("=", parse_binary(rest, tok, env, ND_EQ, false))
   Match(">", parse_binary(rest, tok, env, ND_GT, false))
   Match("<", parse_binary(rest, tok, env, ND_LT, false))
@@ -369,6 +370,9 @@ static Node* parse_primitive(Token** rest, Token* tok, Env* env) {
   Match("addr", parse_unary(rest, tok, env, ND_ADDR))
   Match("not", parse_unary(rest, tok, env, ND_NOT))
   Match("bitnot", parse_unary(rest, tok, env, ND_BITNOT))
+  Match("bitxor", parse_binary(rest, tok, env, ND_BITXOR, false))
+  Match("bitand", parse_binary(rest, tok, env, ND_BITAND, true))
+  Match("bitor", parse_binary(rest, tok, env, ND_BITOR, true))
   Match("sizeof", parse_sizeof(rest, tok, env))
   Match("cast", parse_cast(rest, tok, env))
 #undef Match

@@ -24,6 +24,13 @@ assert() {
   fi
 }
 
+assert 4 "(def main() -> int (bitxor #b010 #b110))"
+assert 0 "(def main() -> int (bitand #b1111 #b111 0))"
+assert 11 "(def main() -> int (bitor #b1010 #b0010 #b10 #b1))"
+assert 1 "(def main() -> int (bitand #b1111 #b111 #b11 #b1))"
+assert 0 "(def main() -> int (mod 18 6))"
+assert 5 "(def main() -> int (mod 17 6))"
+assert 1 "(def main() -> int (mod 3 2))"
 assert 250 "(def main() -> int (bitnot #b101))"
 assert 0 "(def main() -> int (not true))"
 # 42 = 16 + 15 + 8 + 3

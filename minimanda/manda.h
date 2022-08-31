@@ -64,6 +64,7 @@ typedef enum {
   ND_SUB,                   // -
   ND_MUL,                   // *
   ND_DIV,                   // /
+  ND_MOD,                   // mod
   ND_EQ,                    // =
   ND_LT,                    // <
   ND_LE,                    // <=
@@ -83,6 +84,9 @@ typedef enum {
   ND_DO,                    // do
   ND_NOT,                   // not
   ND_BITNOT,                // bitnot
+  ND_BITAND,                // bitand
+  ND_BITOR,                 // bitor
+  ND_BITXOR,                // bitxor
   ND_WHILE,                 // while
   ND_APP,                   // application
   ND_FUNC,                  // function

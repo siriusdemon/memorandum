@@ -320,12 +320,25 @@ static void gen_expr(Node* node) {
     println("  imul %s, %s", di, ax);
     return;
   case ND_DIV:
+  case ND_MOD:
     if (node->lhs->ty->size == 8) {
       println("  cqo");
     } else {
       println("  cdq");
     }
     println("  idiv %s", di);
+    if (node->kind == ND_MOD) {
+      println("  mov %%rdx, %%rax");
+    }
+    return;
+  case ND_BITAND:
+    println("  and %s, %s", di, ax);
+    return;
+  case ND_BITOR:
+    println("  or %s, %s", di, ax);
+    return;
+  case ND_BITXOR:
+    println("  xor %s, %s", di, ax);
     return;
   case ND_EQ: cc = "e"; break;
   case ND_LT: cc = "l"; break;
