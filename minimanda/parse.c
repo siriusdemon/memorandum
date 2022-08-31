@@ -67,6 +67,7 @@ static Node* parse_binary(Token** rest, Token* tok, Env* env, NodeKind kind, boo
 static Node* parse_triple(Token** rest, Token* tok, Env* env, NodeKind kind);
 static Node* parse_deref(Token** rest, Token* tok, Env* env);
 static Node* parse_addr(Token** rest, Token* tok, Env* env);
+static Node* parse_cast(Token** rest, Token* tok, Env* env);
 static Node* parse_application(Token** rest, Token* tok, Env* env);
 static Node* parse_def(Token** rest, Token* tok, Env* env);
 static Node* parse_defstruct(Token** rest, Token* tok, Env** newenv, Env* env);
@@ -361,6 +362,7 @@ static Node* parse_primitive(Token** rest, Token* tok, Env* env) {
   Match("deref", parse_deref(rest, tok, env))
   Match("addr", parse_addr(rest, tok, env))
   Match("sizeof", parse_sizeof(rest, tok, env))
+  Match("cast", parse_cast(rest, tok, env))
 #undef Match
   error_tok(tok, "invalid primitive\n");
 }
@@ -416,6 +418,18 @@ static Node* parse_str(Token** rest, Token* tok, Env* env) {
   prog = let;
   *rest = tok->next;
   return var_node;
+}
+
+static Node* parse_cast(Token** rest, Token* tok, Env* env) {
+  Token* tok_cast = tok;
+  tok = tok->next;
+  Node* lhs = parse_expr(&tok, tok, &env, env);
+  add_type(lhs);
+  Type* ty = parse_type(&tok, tok, env);
+  Node* node = new_unary(ND_CAST, lhs, tok_cast);
+  node->ty = ty;
+  *rest = tok;
+  return node;
 }
 
 static Node* parse_addr(Token** rest, Token* tok, Env* env) {

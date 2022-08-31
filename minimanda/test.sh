@@ -25,6 +25,11 @@ assert() {
 }
 
 
+assert 0 "(def main() -> int 
+            (let x :int 256) 
+            (cast x char))"
+assert 1 "(def main() -> int 8590066177)"
+                
 assert 36 "(def main() -> int
             (defstruct X gender int age int)
             (let x :X)

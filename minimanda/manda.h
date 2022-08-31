@@ -86,6 +86,7 @@ typedef enum {
   ND_STRUCT_REF,            // struct member ref, such as a.p
   ND_DEFUNION,              // defunion
   ND_DEFTYPE,               // deftype
+  ND_CAST,                  // type cast
 } NodeKind;
 
 
