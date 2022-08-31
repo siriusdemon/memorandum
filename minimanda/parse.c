@@ -368,6 +368,8 @@ static Node* parse_primitive(Token** rest, Token* tok, Env* env) {
   Match("iset", parse_triple(rest, tok, env, ND_ISET))
   Match("deref", parse_unary(rest, tok, env, ND_DEREF))
   Match("addr", parse_unary(rest, tok, env, ND_ADDR))
+  Match("and", parse_binary(rest, tok, env, ND_AND, true))
+  Match("or", parse_binary(rest, tok, env, ND_OR, true))
   Match("not", parse_unary(rest, tok, env, ND_NOT))
   Match("bitnot", parse_unary(rest, tok, env, ND_BITNOT))
   Match("bitxor", parse_binary(rest, tok, env, ND_BITXOR, false))

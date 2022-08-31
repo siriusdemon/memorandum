@@ -24,6 +24,8 @@ assert() {
   fi
 }
 
+assert 0 "(def main() -> int (and true false true))"
+assert 1 "(def main() -> int (or false false true))"
 assert 4 "(def main() -> int (bitxor #b010 #b110))"
 assert 0 "(def main() -> int (bitand #b1111 #b111 0))"
 assert 11 "(def main() -> int (bitor #b1010 #b0010 #b10 #b1))"

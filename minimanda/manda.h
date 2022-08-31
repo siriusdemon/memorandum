@@ -83,6 +83,8 @@ typedef enum {
   ND_IF,                    // if
   ND_DO,                    // do
   ND_NOT,                   // not
+  ND_AND,                   // and
+  ND_OR,                    // or
   ND_BITNOT,                // bitnot
   ND_BITAND,                // bitand
   ND_BITOR,                 // bitor
