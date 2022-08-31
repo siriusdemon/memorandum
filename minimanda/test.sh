@@ -24,6 +24,11 @@ assert() {
   fi
 }
 
+assert 1 "(def main() -> int 
+            (let age :int 20)
+            (< 0 age 100))"
+assert 1 "(def main() -> int (> 10 2 1 0))"
+assert 0 "(def main() -> int (< 10 2 1 0))"
 assert 0 "(def main() -> int (and true false true))"
 assert 1 "(def main() -> int (or false false true))"
 assert 4 "(def main() -> int (bitxor #b010 #b110))"

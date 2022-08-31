@@ -65,7 +65,7 @@ static Node* parse_bool(Token** rest, Token* tok, Env* env);
 static Node* parse_str(Token** rest, Token* tok, Env* env);
 static Node* parse_primitive(Token** rest, Token* tok, Env* env);
 static Node* parse_unary(Token** rest, Token* tok, Env* env, NodeKind kind);
-static Node* parse_binary(Token** rest, Token* tok, Env* env, NodeKind kind, bool left_compose);
+static Node* parse_binary(Token** rest, Token* tok, Env* env, NodeKind kind, bool left_compose, bool near_compose);
 static Node* parse_triple(Token** rest, Token* tok, Env* env, NodeKind kind);
 static Node* parse_cast(Token** rest, Token* tok, Env* env);
 static Node* parse_application(Token** rest, Token* tok, Env* env);
@@ -354,27 +354,27 @@ static Node* parse_sizeof(Token** rest, Token* tok, Env* env) {
 
 static Node* parse_primitive(Token** rest, Token* tok, Env* env) {
 #define Match(t, handle)    if (equal(tok, t)) return handle;
-  Match("+", parse_binary(rest, tok, env, ND_ADD, true))
-  Match("-", parse_binary(rest, tok, env, ND_SUB, true))
-  Match("*", parse_binary(rest, tok, env, ND_MUL, true))
-  Match("/", parse_binary(rest, tok, env, ND_DIV, true))
-  Match("mod", parse_binary(rest, tok, env, ND_MOD, false))
-  Match("=", parse_binary(rest, tok, env, ND_EQ, false))
-  Match(">", parse_binary(rest, tok, env, ND_GT, false))
-  Match("<", parse_binary(rest, tok, env, ND_LT, false))
-  Match("<=", parse_binary(rest, tok, env, ND_LE, false))
-  Match(">=", parse_binary(rest, tok, env, ND_GE, false))
-  Match("iget", parse_binary(rest, tok, env, ND_IGET, false))
+  Match("+", parse_binary(rest, tok, env, ND_ADD, true, false))
+  Match("-", parse_binary(rest, tok, env, ND_SUB, true, false))
+  Match("*", parse_binary(rest, tok, env, ND_MUL, true, false))
+  Match("/", parse_binary(rest, tok, env, ND_DIV, true, false))
+  Match("mod", parse_binary(rest, tok, env, ND_MOD, false, false))
+  Match("=", parse_binary(rest, tok, env, ND_EQ, false, true))
+  Match(">", parse_binary(rest, tok, env, ND_GT, false, true))
+  Match("<", parse_binary(rest, tok, env, ND_LT, false, true))
+  Match("<=", parse_binary(rest, tok, env, ND_LE, false, true))
+  Match(">=", parse_binary(rest, tok, env, ND_GE, false, true))
+  Match("iget", parse_binary(rest, tok, env, ND_IGET, false, false))
   Match("iset", parse_triple(rest, tok, env, ND_ISET))
   Match("deref", parse_unary(rest, tok, env, ND_DEREF))
   Match("addr", parse_unary(rest, tok, env, ND_ADDR))
-  Match("and", parse_binary(rest, tok, env, ND_AND, true))
-  Match("or", parse_binary(rest, tok, env, ND_OR, true))
+  Match("and", parse_binary(rest, tok, env, ND_AND, true, false))
+  Match("or", parse_binary(rest, tok, env, ND_OR, true, false))
   Match("not", parse_unary(rest, tok, env, ND_NOT))
   Match("bitnot", parse_unary(rest, tok, env, ND_BITNOT))
-  Match("bitxor", parse_binary(rest, tok, env, ND_BITXOR, false))
-  Match("bitand", parse_binary(rest, tok, env, ND_BITAND, true))
-  Match("bitor", parse_binary(rest, tok, env, ND_BITOR, true))
+  Match("bitxor", parse_binary(rest, tok, env, ND_BITXOR, false, false))
+  Match("bitand", parse_binary(rest, tok, env, ND_BITAND, true, false))
+  Match("bitor", parse_binary(rest, tok, env, ND_BITOR, true, false))
   Match("sizeof", parse_sizeof(rest, tok, env))
   Match("cast", parse_cast(rest, tok, env))
 #undef Match
@@ -390,7 +390,7 @@ static Node* parse_unary(Token** rest, Token* tok, Env* env, NodeKind kind) {
   return node;
 }
 
-static Node* parse_binary(Token** rest, Token* tok, Env* env, NodeKind kind, bool left_compose) {
+static Node* parse_binary(Token** rest, Token* tok, Env* env, NodeKind kind, bool left_compose, bool near_compose) {
   Token* op_tok = tok;
   tok = tok->next;
   Node *lhs, *rhs, *node;
@@ -403,6 +403,13 @@ static Node* parse_binary(Token** rest, Token* tok, Env* env, NodeKind kind, boo
     lhs = node;  
     rhs = parse_expr(&tok, tok, &env, env);
     node = new_binary(kind, lhs, rhs, op_tok);
+  }
+
+  while (near_compose && !stop_parse(tok)) {
+    lhs = rhs;
+    rhs = parse_expr(&tok, tok, &env, env);
+    rhs = new_binary(kind, lhs, rhs, op_tok);
+    node = new_binary(ND_AND, node, rhs, op_tok);
   }
 
   *rest = tok;
