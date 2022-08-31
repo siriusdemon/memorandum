@@ -64,10 +64,9 @@ static Node* parse_number(Token** rest, Token* tok, Env* env);
 static Node* parse_bool(Token** rest, Token* tok, Env* env);
 static Node* parse_str(Token** rest, Token* tok, Env* env);
 static Node* parse_primitive(Token** rest, Token* tok, Env* env);
+static Node* parse_unary(Token** rest, Token* tok, Env* env, NodeKind kind);
 static Node* parse_binary(Token** rest, Token* tok, Env* env, NodeKind kind, bool left_compose);
 static Node* parse_triple(Token** rest, Token* tok, Env* env, NodeKind kind);
-static Node* parse_deref(Token** rest, Token* tok, Env* env);
-static Node* parse_addr(Token** rest, Token* tok, Env* env);
 static Node* parse_cast(Token** rest, Token* tok, Env* env);
 static Node* parse_application(Token** rest, Token* tok, Env* env);
 static Node* parse_def(Token** rest, Token* tok, Env* env);
@@ -366,12 +365,22 @@ static Node* parse_primitive(Token** rest, Token* tok, Env* env) {
   Match(">=", parse_binary(rest, tok, env, ND_GE, false))
   Match("iget", parse_binary(rest, tok, env, ND_IGET, false))
   Match("iset", parse_triple(rest, tok, env, ND_ISET))
-  Match("deref", parse_deref(rest, tok, env))
-  Match("addr", parse_addr(rest, tok, env))
+  Match("deref", parse_unary(rest, tok, env, ND_DEREF))
+  Match("addr", parse_unary(rest, tok, env, ND_ADDR))
+  Match("not", parse_unary(rest, tok, env, ND_NOT))
   Match("sizeof", parse_sizeof(rest, tok, env))
   Match("cast", parse_cast(rest, tok, env))
 #undef Match
   error_tok(tok, "invalid primitive\n");
+}
+
+static Node* parse_unary(Token** rest, Token* tok, Env* env, NodeKind kind) {
+  Token* tok_op = tok;
+  tok = tok->next;
+  Node* lhs = parse_expr(&tok, tok, &env, env);
+  Node* node = new_unary(kind, lhs, tok_op);
+  *rest = tok;
+  return node;
 }
 
 static Node* parse_binary(Token** rest, Token* tok, Env* env, NodeKind kind, bool left_compose) {
@@ -450,25 +459,7 @@ static Node* parse_cast(Token** rest, Token* tok, Env* env) {
   return node;
 }
 
-static Node* parse_addr(Token** rest, Token* tok, Env* env) {
-  Token* tok_addr = tok;
-  tok = tok->next;
-  Var* var = lookup_var(env, tok);
-  if (!var)
-    error_tok(tok, "undefined variable");
-  Node* var_node = new_var_node(var, tok);
-  *rest = tok->next;
-  return new_unary(ND_ADDR, var_node, tok_addr);
-}
 
-static Node* parse_deref(Token** rest, Token* tok, Env* env) {
-  Token* tok_deref = tok;
-  tok = tok->next;
-  Node* lhs = parse_expr(&tok, tok, &env, env);
-  Node* node = new_unary(ND_DEREF, lhs, tok_deref);
-  *rest = tok;
-  return node;
-}
 
 static Node* parse_application(Token** rest, Token* tok, Env* env) {
   Token* tok_app = tok;
@@ -651,7 +642,7 @@ static Node* parse_expr(Token** rest, Token* tok, Env** newenv, Env* env) {
   }
 
   if (equal(tok, "&")) {
-    return parse_addr(rest, tok, env);
+    return parse_unary(rest, tok, env, ND_ADDR);
   }
 
   if (tok->kind == TK_STR) {

@@ -257,6 +257,12 @@ static void gen_expr(Node* node) {
       gen_expr(node->lhs);
       cast(node->lhs->ty, node->ty);
       return;
+    case ND_NOT:
+      gen_expr(node->lhs);
+      println("  cmp $0, %%rax");
+      println("  sete %%al");
+      println("  movzx %%al, %%rax");
+      return;
   } 
 
   // iget iset

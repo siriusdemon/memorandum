@@ -82,6 +82,7 @@ void add_type(Node* node) {
   case ND_LE:
   case ND_GE:
   case ND_GT:
+  case ND_NOT:
     node->ty = ty_bool;
     return;
   case ND_VAR:

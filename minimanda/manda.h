@@ -81,6 +81,7 @@ typedef enum {
   ND_SET,                   // set
   ND_IF,                    // if
   ND_DO,                    // do
+  ND_NOT,                   // not
   ND_WHILE,                 // while
   ND_APP,                   // application
   ND_FUNC,                  // function
