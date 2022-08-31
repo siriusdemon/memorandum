@@ -175,6 +175,26 @@ static Token* read_string_literal(Token* cur, char* start) {
   return tok;
 }
 
+static Token *read_char_literal(Token *cur, char *start) {
+  char* p = start + 1;
+  if (*p == '\0')
+    error_at(start, "unclosed char literal");
+
+  char c;
+  if (*p == '\\')
+    c = read_escaped_char(p++);
+  else
+    c = *p++;
+
+  char *end = strchr(p, '\'');
+  if (!end)
+    error_at(p, "unclosed char literal");
+
+  Token *tok = new_token(TK_NUM, cur, start, end - start + 1);
+  tok->val = c;
+  return tok;
+}
+
 // Initialize line info for all tokens.
 static void add_line_numbers(Token *tok) {
   char *p = current_input;
@@ -189,6 +209,44 @@ static void add_line_numbers(Token *tok) {
       n++;
   } while (*p++);
 }
+
+
+static Token* read_int_literal(Token* cur, char* start) {
+  char *p = start;
+
+  int base = 10;
+  if (!strncasecmp(p, "#x", 2) && isalnum(p[2])) {
+    p += 2;
+    base = 16;
+  } else if (!strncasecmp(p, "#b", 2) && isalnum(p[2])) {
+    p += 2;
+    base = 2;
+  } else if (!strncasecmp(p, "#o", 2) && isalnum(p[2])) {
+    p += 2;
+    base = 8;
+  }
+
+  long val = strtoul(p, &p, base);
+  if (isalnum(*p))
+    error_at(p, "invalid digit");
+
+  Token *tok = new_token(TK_NUM, cur, start, p - start);
+  tok->val = val;
+  return tok;
+}
+
+static Token* read_hash_literal(Token* cur, char* start) {
+  char *p = start + 1;
+  switch (*p) {
+  case 'x':
+  case 'o':
+  case 'b':
+    return read_int_literal(cur, start);
+  default:
+    error_tok(cur, "invalid literal");
+  }
+}
+
 
 // Tokenize `p` and returns new tokens.
 Token* tokenize(char* filename, char* p) {
@@ -206,10 +264,15 @@ Token* tokenize(char* filename, char* p) {
 
     // Numeric literal
     if (isdigit(*p)) {
-      cur = new_token(TK_NUM, cur, p, 0);
-      char* q = p;
-      cur->val = strtoul(p, &p, 10);
-      cur->len = p - q;
+      cur = read_int_literal(cur, p);
+      p += cur->len;
+      continue;
+    }
+
+    // hash literal
+    if (*p == '#') {
+      cur = read_hash_literal(cur, p);
+      p += cur->len;
       continue;
     }
     
@@ -243,6 +306,12 @@ Token* tokenize(char* filename, char* p) {
     // string
     if (*p == '"') {
       cur = read_string_literal(cur, p);
+      p += cur->len;
+      continue;
+    }
+
+    if (*p == '\'') {
+      cur = read_char_literal(cur, p);
       p += cur->len;
       continue;
     }

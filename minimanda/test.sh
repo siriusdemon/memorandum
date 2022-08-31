@@ -24,6 +24,10 @@ assert() {
   fi
 }
 
+# 42 = 16 + 15 + 8 + 3
+assert 42 "(def main() -> int (+ #x10 #o17 #b1000 #b11))"
+assert 4 "(def main() -> int #b100)"
+assert 97 "(def main() -> int (let x :char 'a') x)"
 assert 2 "(def main() -> int (let x :bool true) (+ (sizeof bool) (cast x bool)))"
 assert 0 "(def main() -> int (let x :bool false) (cast x bool))"
 assert 0 "(def main() -> int 
