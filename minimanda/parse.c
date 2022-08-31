@@ -368,6 +368,7 @@ static Node* parse_primitive(Token** rest, Token* tok, Env* env) {
   Match("deref", parse_unary(rest, tok, env, ND_DEREF))
   Match("addr", parse_unary(rest, tok, env, ND_ADDR))
   Match("not", parse_unary(rest, tok, env, ND_NOT))
+  Match("bitnot", parse_unary(rest, tok, env, ND_BITNOT))
   Match("sizeof", parse_sizeof(rest, tok, env))
   Match("cast", parse_cast(rest, tok, env))
 #undef Match

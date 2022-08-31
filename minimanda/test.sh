@@ -24,6 +24,7 @@ assert() {
   fi
 }
 
+assert 250 "(def main() -> int (bitnot #b101))"
 assert 0 "(def main() -> int (not true))"
 # 42 = 16 + 15 + 8 + 3
 assert 42 "(def main() -> int (+ #x10 #o17 #b1000 #b11))"
