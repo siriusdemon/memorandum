@@ -71,6 +71,7 @@ typedef enum {
   ND_ADDR,                  // &
   ND_DEREF,                 // a.*
   ND_NUM,                   // integer
+  ND_BOOL,                  // boolean
   ND_VAR,                   // variable
   ND_STR,                   // string
   ND_IGET,                  // iget
@@ -157,6 +158,7 @@ typedef enum {
   TY_VOID,
   TY_STRUCT,
   TY_UNION,
+  TY_BOOL,
 } TypeKind;
 
 struct Type {
@@ -174,6 +176,9 @@ struct Type {
   Type* base;
 };
 
+#define TRUE  1
+#define FALSE 0
+extern Type* ty_bool;
 extern Type* ty_int;
 extern Type* ty_void;
 extern Type* ty_char;

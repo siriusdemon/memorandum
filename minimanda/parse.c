@@ -61,6 +61,7 @@ static Node* parse_do(Token** rest, Token* tok, Env* env);
 static Node* parse_if(Token** rest, Token* tok, Env* env);
 static Node* parse_while(Token** rest, Token* tok, Env* env);
 static Node* parse_number(Token** rest, Token* tok, Env* env);
+static Node* parse_bool(Token** rest, Token* tok, Env* env);
 static Node* parse_str(Token** rest, Token* tok, Env* env);
 static Node* parse_primitive(Token** rest, Token* tok, Env* env);
 static Node* parse_binary(Token** rest, Token* tok, Env* env, NodeKind kind, bool left_compose);
@@ -154,6 +155,12 @@ static Node* new_triple(NodeKind kind, Node* lhs, Node* mhs, Node* rhs, Token* t
 }
 
 static Node* new_num(int64_t val, Token* tok) {
+  Node* node = new_node(ND_NUM, tok);
+  node->val = val;
+  return node;
+}
+
+static Node* new_bool(bool val, Token* tok) {
   Node* node = new_node(ND_NUM, tok);
   node->val = val;
   return node;
@@ -399,6 +406,17 @@ static Node* parse_triple(Token** rest, Token* tok, Env* env, NodeKind kind) {
   return node;
 }
 
+static Node* parse_bool(Token** rest, Token* tok, Env* env) {
+  bool b = TRUE;
+  if (equal(tok, "false")) {
+    b = FALSE; 
+  }
+  Node* node = new_bool(b, tok);
+  *rest = tok->next;
+  return node;
+
+}
+
 static Node* parse_number(Token** rest, Token* tok, Env* env) {
   Node* node = new_num(tok->val, tok);
   *rest = tok->next;
@@ -639,6 +657,11 @@ static Node* parse_expr(Token** rest, Token* tok, Env** newenv, Env* env) {
   if (tok->kind == TK_STR) {
     return parse_str(rest, tok, env);
   }
+
+  if (equal(tok, "true") || equal(tok, "false")) {
+    return parse_bool(rest, tok, env);
+  }
+  
   error_tok(tok, "expect an expression");
 }
 
@@ -659,6 +682,10 @@ static Type* parse_base_type(Token** rest, Token* tok, Env* env) {
   if (equal(tok, "long")) {
     *rest = tok->next;
     return ty_long;
+  }
+  if (equal(tok, "bool")) {
+    *rest = tok->next;
+    return ty_bool;
   }
   Type* ty = lookup_tag(env, tok);
   if(ty) {

@@ -24,7 +24,8 @@ assert() {
   fi
 }
 
-
+assert 2 "(def main() -> int (let x :bool true) (+ (sizeof bool) (cast x bool)))"
+assert 0 "(def main() -> int (let x :bool false) (cast x bool))"
 assert 0 "(def main() -> int 
             (let x :int 256) 
             (cast x char))"

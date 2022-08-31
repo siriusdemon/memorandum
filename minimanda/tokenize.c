@@ -84,6 +84,7 @@ static bool is_keyword(Token* tok) {
   static char *kw[] = {"let", "const", "set", "do", "def", "lambda", "if", "iset", "iget", 
     "while", "asm", "defstruct", "defenum", "match", "deftype", "defmodule", "import", 
     "export", "async", "defasync", "await", "defmacro", "with", "defunion", "typeof",
+    "true", "false",
   };
 
   for (int i = 0; i < sizeof(kw) / sizeof(*kw); i++)

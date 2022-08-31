@@ -1,5 +1,6 @@
 #include "manda.h"
 
+Type* ty_bool = &(Type){.kind = TY_BOOL, .size = 1, .align = 1};
 Type* ty_int =  &(Type){.kind = TY_INT,  .size = 4, .align = 4};
 Type* ty_short= &(Type){.kind = TY_SHORT,.size = 2, .align = 2};
 Type* ty_long = &(Type){.kind = TY_LONG, .size = 8, .align = 8};
@@ -72,13 +73,16 @@ void add_type(Node* node) {
   case ND_SUB:
   case ND_MUL:
   case ND_DIV:
+  case ND_NUM:
+    node->ty = ty_int;
+    return;
+  case ND_BOOL:
   case ND_EQ:
   case ND_LT:
   case ND_LE:
   case ND_GE:
   case ND_GT:
-  case ND_NUM:
-    node->ty = ty_int;
+    node->ty = ty_bool;
     return;
   case ND_VAR:
     node->ty = node->var->ty;
