@@ -89,6 +89,9 @@ typedef enum {
   ND_BITAND,                // bitand
   ND_BITOR,                 // bitor
   ND_BITXOR,                // bitxor
+  ND_SRA,                   // shift right arithmetic
+  ND_SRL,                   // shift right logically  
+  ND_SLL,                   // shift left logically
   ND_WHILE,                 // while
   ND_APP,                   // application
   ND_FUNC,                  // function

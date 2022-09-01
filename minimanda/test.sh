@@ -24,6 +24,9 @@ assert() {
   fi
 }
 
+assert 248 "(def main() -> int (sra (- 0 32) 2))"
+assert 42 "(def main() -> int (- (sll 2 5) (srl 44 1)))"
+assert 32 "(def main() -> int (sll 1 5))"
 assert 1 "(def main() -> int 
             (let age :int 20)
             (< 0 age 100))"

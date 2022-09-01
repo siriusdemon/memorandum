@@ -375,6 +375,9 @@ static Node* parse_primitive(Token** rest, Token* tok, Env* env) {
   Match("bitxor", parse_binary(rest, tok, env, ND_BITXOR, false, false))
   Match("bitand", parse_binary(rest, tok, env, ND_BITAND, true, false))
   Match("bitor", parse_binary(rest, tok, env, ND_BITOR, true, false))
+  Match("sra", parse_binary(rest, tok, env, ND_SRA, false, false))
+  Match("srl", parse_binary(rest, tok, env, ND_SRL, false, false))
+  Match("sll", parse_binary(rest, tok, env, ND_SLL, false, false))
   Match("sizeof", parse_sizeof(rest, tok, env))
   Match("cast", parse_cast(rest, tok, env))
 #undef Match
