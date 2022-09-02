@@ -370,6 +370,18 @@ static Node* parse_set(Token** rest, Token* tok, Env* env) {
   tok = skip(tok, "set");
   Node* lhs = parse_expr(&tok, tok, &env, env);
   Node* rhs = parse_expr(&tok, tok, &env, env);
+  if (rhs->kind == ND_ARRAY_LITERAL) {
+      Node* node = new_let(lhs, NULL, tok_set);
+      Node* cur = node;
+      int i = 0;
+      for (Node* e = rhs->elements; e; e = e->next, i++) {
+        Node* n = new_triple(ND_ISET, lhs, new_num(i, tok_set), e, tok_set);
+        cur->next = n;
+        cur = n;
+      }
+      *rest = tok;
+      return node; 
+  }
   Node* node = new_set(lhs, rhs, tok_set);
   *rest = tok;
   return node;

@@ -24,6 +24,12 @@ assert() {
   fi
 }
 
+assert 5 "(def main() -> int
+             (let c :[2 2 int])
+             (set (iget c 0) #a[1 2])
+             (set (iget c 1) #a[3 4])
+             (+ (iget (iget c 0) 1)
+                (iget (iget c 1) 0)))"
 assert 42 "(def main() -> int
               (let a :[2 int] #a[22 20])
               (let b :[1 int] #a[0])
