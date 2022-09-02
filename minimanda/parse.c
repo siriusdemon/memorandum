@@ -407,7 +407,7 @@ static Node* parse_primitive(Token** rest, Token* tok, Env* env) {
   Match("<", parse_binary(rest, tok, env, ND_LT, false, true))
   Match("<=", parse_binary(rest, tok, env, ND_LE, false, true))
   Match(">=", parse_binary(rest, tok, env, ND_GE, false, true))
-  Match("iget", parse_binary(rest, tok, env, ND_IGET, false, false))
+  Match("iget", parse_binary(rest, tok, env, ND_IGET, true, false))
   Match("iset", parse_triple(rest, tok, env, ND_ISET))
   Match("deref", parse_unary(rest, tok, env, ND_DEREF))
   Match("addr", parse_unary(rest, tok, env, ND_ADDR))
