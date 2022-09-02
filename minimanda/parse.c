@@ -144,6 +144,14 @@ static Node* new_node(NodeKind kind, Token* tok) {
   return node;
 }
 
+static Node* merge_nodes(Node* cur, Node* list) {
+  cur->next = list;
+  while (cur->next) {
+    cur = cur->next;
+  }
+  return cur;
+}
+
 static Node* new_unary(NodeKind kind, Node* lhs, Token* tok) {
   Node* node = new_node(kind, tok);
   node->lhs = lhs;
@@ -302,11 +310,7 @@ static Node* parse_do(Token** rest, Token* tok, Env* env) {
   Node head = {};
   Node* cur = &head;
   while (!stop_parse(tok)) {
-    cur->next = parse_expr(&tok, tok, &env, env);
-    cur = cur->next;
-    while (cur->next) {
-      cur = cur->next;
-    }
+    cur = merge_nodes(cur, parse_expr(&tok, tok, &env, env));
   }
   Node* node = new_do(head.next, tok_do);
   *rest = tok;
@@ -320,17 +324,24 @@ static Node* parse_while(Token** rest, Token* tok, Env* env) {
   Node head = {};
   Node* cur = &head;
   while (!stop_parse(tok)) {
-    cur->next = parse_expr(&tok, tok, &env, env);
-    cur = cur->next;
-    while (cur->next) {
-      cur = cur->next;
-    }
+    cur = merge_nodes(cur, parse_expr(&tok, tok, &env, env));
   }
   Node* node = new_while(cond, head.next, tok_while);
   *rest = tok;
   return node;
 }
 
+static Node* literal_expand(Node* lhs, Node* rhs, Token* tok) {
+  Node head = {};
+  Node* cur = &head;
+  int i = 0;
+  for (Node* e = rhs->elements; e; e = e->next, i++) {
+    Node* n = new_triple(ND_ISET, lhs, new_num(i, tok), e, tok);
+    cur->next = n;
+    cur = n;
+  }
+  return head.next;
+}
 
 static Node* parse_let(Token** rest, Token* tok, Env** newenv, Env* env, Var* (*alloc_var)(char* name, Type* ty)) {
   Token* tok_let = tok;
@@ -349,13 +360,7 @@ static Node* parse_let(Token** rest, Token* tok, Env** newenv, Env* env, Var* (*
     rhs = parse_expr(&tok, tok, &env, env); 
     if (rhs->kind == ND_ARRAY_LITERAL) {
       Node* node = new_let(lhs, NULL, tok_let);
-      Node* cur = node;
-      int i = 0;
-      for (Node* e = rhs->elements; e; e = e->next, i++) {
-        Node* n = new_triple(ND_ISET, lhs, new_num(i, tok_let), e, tok_let);
-        cur->next = n;
-        cur = n;
-      }
+      node->next = literal_expand(lhs, rhs, tok_let);
       *rest = tok;
       return node;
     }
@@ -372,13 +377,7 @@ static Node* parse_set(Token** rest, Token* tok, Env* env) {
   Node* rhs = parse_expr(&tok, tok, &env, env);
   if (rhs->kind == ND_ARRAY_LITERAL) {
       Node* node = new_let(lhs, NULL, tok_set);
-      Node* cur = node;
-      int i = 0;
-      for (Node* e = rhs->elements; e; e = e->next, i++) {
-        Node* n = new_triple(ND_ISET, lhs, new_num(i, tok_set), e, tok_set);
-        cur->next = n;
-        cur = n;
-      }
+      node->next = literal_expand(lhs, rhs, tok_set);
       *rest = tok;
       return node; 
   }
@@ -528,11 +527,7 @@ static Node* parse_application(Token** rest, Token* tok, Env* env) {
   Node* cur = &head;
   tok = tok->next;
   while (!stop_parse(tok)) {
-    cur->next = parse_expr(&tok, tok, &env, env); 
-    cur = cur->next;
-    while (cur->next) {
-      cur = cur->next;
-    }
+    cur = merge_nodes(cur, parse_expr(&tok, tok, &env, env));
   }
   *rest = tok;
   return new_app(fn, head.next, tok_app);
@@ -660,13 +655,7 @@ static Node* parse_def(Token** rest, Token* tok, Env* env) {
   Node head_body = {};
   cur = &head_body;
   while (!stop_parse(tok)) {
-    cur->next = parse_expr(&tok, tok, &env, env);
-    cur = cur->next;
-    // since some node can return a list of node (e.g. let with initializer)
-    // we have to append such expression to the body
-    while (cur->next) {
-      cur = cur->next;
-    }
+    cur = merge_nodes(cur, parse_expr(&tok, tok, &env, env));
   }
   *rest = tok;
   return new_function(fn, ret_ty, head_args.next, head_body.next, tok_def);
