@@ -100,6 +100,7 @@ typedef enum {
   ND_DEFUNION,              // defunion
   ND_DEFTYPE,               // deftype
   ND_CAST,                  // type cast
+  ND_ARRAY_LITERAL,         // array literal #a(1 2)
 } NodeKind;
 
 
@@ -124,6 +125,9 @@ struct Node {
 
   // struct member;
   Member* member;
+
+  // array element
+  Node* elements;
 
   // if
   Node* cond;
@@ -202,7 +206,6 @@ Type* new_struct_type(int size, int align, Member* members);
 Type* new_union_type(int size, int align, Member* members);
 Type* pointer_to(Type* base);
 Type* array_of(Type *base, int len);
-
 
 //
 // codegen.c

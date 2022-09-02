@@ -64,7 +64,7 @@ bool equal(Token* tok, char* s) {
 // Consumes the current token if it matches `s`.
 Token* skip(Token* tok, char* s) {
   if (!equal(tok, s))
-    error("expected '%s'", s);
+    error_tok(tok, "expected '%s'", s);
   return tok->next;
 }
 
@@ -235,18 +235,6 @@ static Token* read_int_literal(Token* cur, char* start) {
   return tok;
 }
 
-static Token* read_hash_literal(Token* cur, char* start) {
-  char *p = start + 1;
-  switch (*p) {
-  case 'x':
-  case 'o':
-  case 'b':
-    return read_int_literal(cur, start);
-  default:
-    error_tok(cur, "invalid literal");
-  }
-}
-
 
 // Tokenize `p` and returns new tokens.
 Token* tokenize(char* filename, char* p) {
@@ -270,8 +258,8 @@ Token* tokenize(char* filename, char* p) {
     }
 
     // hash literal
-    if (*p == '#') {
-      cur = read_hash_literal(cur, p);
+    if (*p == '#' && ((*(p+1) == 'b') || *(p+1) == 'x' || *(p+1) == 'o')) {
+      cur = read_int_literal(cur, p);
       p += cur->len;
       continue;
     }

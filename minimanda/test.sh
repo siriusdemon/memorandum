@@ -24,6 +24,10 @@ assert() {
   fi
 }
 
+assert 42 "(def main() -> int
+              (let a :[2 int] #a[22 20])
+              (let b :[1 int] #a[0])
+              (+ (iget a 0) (iget a 1) (iget b 0)))"
 assert 248 "(def main() -> int (sra (- 0 32) 2))"
 assert 42 "(def main() -> int (- (sll 2 5) (srl 44 1)))"
 assert 32 "(def main() -> int (sll 1 5))"
