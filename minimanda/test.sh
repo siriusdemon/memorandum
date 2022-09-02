@@ -23,6 +23,24 @@ assert() {
     exit 1
   fi
 }
+assert 5 "(def main() -> int
+             (let c :[5 5 int] 
+              #a[#a[1 0 0 0 0]
+                 #a[0 1 0 0 0]
+                 #a[0 0 1 0 0]
+                 #a[0 0 0 1 0]
+                 #a[0 0 0 0 1]])
+             (+ (iget c 0 0)
+                (iget c 1 1)
+                (iget c 2 2)
+                (iget c 3 3)
+                (iget c 4 4)))"
+
+assert 5 "(def main() -> int
+             (let c :[2 2 int] #a[#a[1 2] #a[3 4]])
+             (+ (iget c 0 1)
+                (iget c 1 0)))"
+
 
 assert 5 "(def main() -> int
              (let c :[2 2 int])

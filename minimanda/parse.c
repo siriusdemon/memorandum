@@ -336,9 +336,15 @@ static Node* literal_expand(Node* lhs, Node* rhs, Token* tok) {
   Node* cur = &head;
   int i = 0;
   for (Node* e = rhs->elements; e; e = e->next, i++) {
-    Node* n = new_triple(ND_ISET, lhs, new_num(i, tok), e, tok);
-    cur->next = n;
-    cur = n;
+    if (e->kind == ND_ARRAY_LITERAL) {
+      Node* new_lhs = new_binary(ND_IGET, lhs, new_num(i, tok), tok);
+      Node* list = literal_expand(new_lhs, e, tok);
+      cur = merge_nodes(cur, list);
+    } else {
+      Node* n = new_triple(ND_ISET, lhs, new_num(i, tok), e, tok);
+      cur->next = n;
+      cur = n;
+    }
   }
   return head.next;
 }
