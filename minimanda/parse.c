@@ -3,6 +3,34 @@
 // global flags
 // binding_ctx: when a constant or literal is given in a binding context, this flag is set.
 bool binding_ctx = false;
+// array_ctx: when a constant or literal is given in an array literal, this flag is set.
+bool array_ctx = false;
+
+static bool is_array_ctx() {
+  return array_ctx;
+}
+
+static bool is_binding_ctx() {
+  return binding_ctx;
+}
+
+static void set_array_ctx() {
+  array_ctx = true;
+}
+
+static void unset_array_ctx() {
+  array_ctx = false;
+}
+
+static void set_binding_ctx() {
+  binding_ctx = true;
+}
+
+static void unset_binding_ctx() {
+  if (!is_array_ctx()) {
+    binding_ctx = false;
+  }
+}
 
 
 
@@ -349,7 +377,6 @@ static Node* literal_expand(Node* lhs, Node* rhs, Token* tok) {
     }
     Node* n = new_triple(ND_ISET, lhs, new_num(i, tok), new_num('\0', tok), tok);
     cur = merge_nodes(cur, n);
-    lhs->ty = rhs->ty;
   }
 
   if (rhs->kind == ND_ARRAY_LITERAL) {
@@ -381,7 +408,7 @@ static Node* parse_let(Token** rest, Token* tok, Env** newenv, Env* env, Var* (*
   *newenv = add_var(env, var);  
   Node* lhs = new_var_node(var, tok_var);
   // let is a binding form, so 
-  binding_ctx = true;
+  set_binding_ctx();
 
   Node* rhs = NULL;
   if (!stop_parse(tok)) { 
@@ -528,8 +555,8 @@ static Node* parse_str(Token** rest, Token* tok, Env* env) {
   str_node->ty = ty;
   // when in a binding context, just return the node.
   // otherwise, make it as global variable.
-  if (binding_ctx) {
-    binding_ctx = false;
+  if (is_binding_ctx()) {
+    unset_binding_ctx();
     *rest = tok->next;
     return str_node;
   }
@@ -753,6 +780,9 @@ static Node* parse_array_literal(Token** rest, Token* tok, Env* env) {
   Node* cur = &head;
   int len = 0;
   Type* base = NULL;
+  
+  set_array_ctx();
+
   while (!stop_parse(tok)) {
     cur->next = parse_expr(&tok, tok, &env, env);
     cur = cur->next;
@@ -765,6 +795,9 @@ static Node* parse_array_literal(Token** rest, Token* tok, Env* env) {
     }
     len++;
   }
+
+  unset_array_ctx();
+
   tok = skip(tok, pair);
   Node* node = new_node(ND_ARRAY_LITERAL, tok_hash);
   node->elements = head.next;

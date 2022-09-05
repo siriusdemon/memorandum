@@ -24,6 +24,14 @@ assert() {
   fi
 }
 
+assert 147 '(def main() -> int
+            (let a :[2 5 char] #a("ab" "cd"))
+            (let b :[2 5 char] #a("ef" "gh"))
+            (+ (iget a 0 0) (iget a 1 1)
+               (iget b 0 1) (iget b 1 1)
+               ))'
+
+
 assert 97 '(def main() -> int
             (let a :[5 char] "abcd")
             (iget a 0))'
