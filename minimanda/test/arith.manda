@@ -1,0 +1,6 @@
+(def main() -> int
+  (assert 0 0 "0")
+  (assert 42 42 "42")
+  (assert 42 (+ 20 22) "(+ 20 22)")
+  0
+)
