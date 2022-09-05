@@ -23,6 +23,11 @@ assert() {
     exit 1
   fi
 }
+
+assert 97 '(def main() -> int
+            (let a :[5 char] "abcd")
+            (iget a 0))'
+
 assert 5 "(def main() -> int
              (let c :[5 5 int] 
               #a[#a[1 0 0 0 0]

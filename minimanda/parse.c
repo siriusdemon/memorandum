@@ -1,5 +1,11 @@
 #include "manda.h"
 
+// global flags
+// binding_ctx: when a constant or literal is given in a binding context, this flag is set.
+bool binding_ctx = false;
+
+
+
 Node* prog = &(Node){};
 Var* locals;
 Var* globals;
@@ -335,15 +341,28 @@ static Node* literal_expand(Node* lhs, Node* rhs, Token* tok) {
   Node head = {};
   Node* cur = &head;
   int i = 0;
-  for (Node* e = rhs->elements; e; e = e->next, i++) {
-    if (e->kind == ND_ARRAY_LITERAL) {
-      Node* new_lhs = new_binary(ND_IGET, lhs, new_num(i, tok), tok);
-      Node* list = literal_expand(new_lhs, e, tok);
-      cur = merge_nodes(cur, list);
-    } else {
-      Node* n = new_triple(ND_ISET, lhs, new_num(i, tok), e, tok);
-      cur->next = n;
-      cur = n;
+  // str literal
+  if (rhs->kind == ND_STR) {
+    for (char* p = rhs->str; *p != '\0'; p++, i++) {
+      Node* n = new_triple(ND_ISET, lhs, new_num(i, tok), new_num(*p, tok), tok);
+      cur = merge_nodes(cur, n);
+    }
+    Node* n = new_triple(ND_ISET, lhs, new_num(i, tok), new_num('\0', tok), tok);
+    cur = merge_nodes(cur, n);
+    lhs->ty = rhs->ty;
+  }
+
+  if (rhs->kind == ND_ARRAY_LITERAL) {
+    for (Node* e = rhs->elements; e; e = e->next, i++) {
+      if (e->kind == ND_ARRAY_LITERAL || e->kind == ND_STR) {
+        Node* new_lhs = new_binary(ND_IGET, lhs, new_num(i, tok), tok);
+        Node* list = literal_expand(new_lhs, e, tok);
+        cur = merge_nodes(cur, list);
+      } else {
+        Node* n = new_triple(ND_ISET, lhs, new_num(i, tok), e, tok);
+        cur->next = n;
+        cur = n;
+      }
     }
   }
   return head.next;
@@ -361,10 +380,13 @@ static Node* parse_let(Token** rest, Token* tok, Env** newenv, Env* env, Var* (*
   Var* var = alloc_var(strndup(tok_var->loc, tok_var->len), ty);
   *newenv = add_var(env, var);  
   Node* lhs = new_var_node(var, tok_var);
+  // let is a binding form, so 
+  binding_ctx = true;
+
   Node* rhs = NULL;
   if (!stop_parse(tok)) { 
     rhs = parse_expr(&tok, tok, &env, env); 
-    if (rhs->kind == ND_ARRAY_LITERAL) {
+    if (rhs->kind == ND_ARRAY_LITERAL || rhs->kind == ND_STR) {
       Node* node = new_let(lhs, NULL, tok_let);
       node->next = literal_expand(lhs, rhs, tok_let);
       *rest = tok;
@@ -504,7 +526,13 @@ static Node* parse_str(Token** rest, Token* tok, Env* env) {
   var_node->ty = ty;
   Node* str_node = new_str_node(tok->str, tok);
   str_node->ty = ty;
-  // since str is global data, we need to register a let node on `prog`
+  // when in a binding context, just return the node.
+  // otherwise, make it as global variable.
+  if (binding_ctx) {
+    binding_ctx = false;
+    *rest = tok->next;
+    return str_node;
+  }
   Node* let = new_let(var_node, str_node, tok);
   let->next = prog;
   prog = let;
