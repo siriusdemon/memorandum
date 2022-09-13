@@ -176,6 +176,7 @@ static void gen_expr(Node* node) {
   case ND_DEFSTRUCT:
   case ND_DEFUNION:
   case ND_DEFTYPE:
+  case ND_DEFMACRO:
     return;
   case ND_LET:
     if (node->rhs) {

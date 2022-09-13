@@ -61,11 +61,29 @@ bool equal(Token* tok, char* s) {
          !strncmp(tok->loc, s, tok->len);
 }
 
+// ensure the current token is a list and get a pair of it.
+char* get_pair(Token** rest, Token* tok) {
+  if (is_list(tok)) {
+    char* pair = tok->kind == TK_LPAREN ? ")" : "]";
+    *rest = tok->next;
+    return pair;
+  }
+  error_tok(tok, "expected a list");
+}
+
 // Consumes the current token if it matches `s`.
 Token* skip(Token* tok, char* s) {
   if (!equal(tok, s))
     error_tok(tok, "expected '%s'", s);
   return tok->next;
+}
+
+bool stop_parse(Token* tok) {
+  return tok->kind == TK_EOF || tok->kind == TK_RPAREN || tok->kind == TK_RBRACKET;
+}
+
+bool is_list(Token* tok) {
+  return tok->kind == TK_LPAREN || tok->kind == TK_LBRACKET;
 }
 
 

@@ -120,6 +120,7 @@ void add_type(Node* node) {
   case ND_DEFSTRUCT:
   case ND_DEFUNION:
   case ND_DEFTYPE:
+  case ND_DEFMACRO:
     node->ty = ty_void;
     return;
   case ND_ADDR:

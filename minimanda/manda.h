@@ -47,6 +47,9 @@ struct Token {
 
 bool equal(Token*, char*);
 bool is_primitive(Token*);
+bool stop_parse(Token* tok);
+bool is_list(Token* tok);
+char* get_pair(Token** rest, Token* tok);
 Token* skip(Token*, char*);
 Token* tokenize_file(char* filename);
 
@@ -58,6 +61,12 @@ void error_tok(Token* tok, char* fmt, ...);
 // parse.c
 //
 typedef struct Var Var;
+typedef struct Env Env;
+struct Env {
+  Var* var;
+  Env* next;
+  bool is_tag;
+};
 
 typedef enum {
   ND_ADD,                   // +
@@ -101,6 +110,7 @@ typedef enum {
   ND_DEFTYPE,               // deftype
   ND_CAST,                  // type cast
   ND_ARRAY_LITERAL,         // array literal #a(1 2)
+  ND_DEFMACRO,              // defmacro
 } NodeKind;
 
 
@@ -160,7 +170,13 @@ struct Var {
 };
 
 Node* parse(Token*);
-
+Node* new_node(NodeKind kind, Token* tok);
+Node* new_num(int64_t val, Token* tok);
+Node* new_bool(bool val, Token* tok);
+Node* new_app(char* fn, Node* args, Token* tok);
+Node* new_var_node(Var* var, Token* tok);
+Node* new_str_node(char* str, Token* tok);
+Node* register_str(Node* str_node);
 
 // type.c
 typedef enum {
@@ -216,3 +232,44 @@ Type* array_of(Type *base, int len);
 void codegen(Node* prog, FILE* out);
 int align_to(int n, int align);
 #endif
+
+
+//
+// macro.c
+//
+typedef struct Sexp Sexp;
+typedef struct Macro Macro;
+typedef struct MEnv MEnv;
+typedef enum {
+  SE_SYMBOL,
+  SE_LIST,
+} SexpKind;
+
+
+struct Sexp {
+  SexpKind kind; 
+  Token* tok;
+  Sexp* next;         // the chain
+  Sexp* elements;     // elements of a list node
+};
+
+struct Macro {
+  Token* name;
+  Sexp* args;
+  Sexp* body;
+  Macro* next;
+};
+
+struct MEnv {
+  Sexp* symbol;
+  Sexp* value;
+  MEnv* next;
+};
+
+Sexp* parse_sexp(Token** rest, Token* tok);
+Sexp* parse_sexp_list(Token** rest, Token* tok);
+Sexp* parse_sexp_symbol(Token** rest, Token* tok);
+Macro* new_macro(Token* name, Sexp* args, Sexp* body);
+void register_macro(Macro* t);
+bool is_macro(Token* tok);
+Node* macro_expand(Token** rest, Token* tok, Env* env);
