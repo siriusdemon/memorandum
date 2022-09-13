@@ -176,6 +176,7 @@ Node* new_bool(bool val, Token* tok);
 Node* new_app(char* fn, Node* args, Token* tok);
 Node* new_var_node(Var* var, Token* tok);
 Node* new_str_node(char* str, Token* tok);
+Node* new_binary(NodeKind kind, Node* lhs, Node* rhs, Token* tok);
 Node* register_str(Node* str_node);
 
 // type.c

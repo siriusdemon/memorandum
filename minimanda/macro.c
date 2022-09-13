@@ -20,9 +20,9 @@ static Node* eval_list(Sexp* se, MEnv* menv);
 static Node* eval_application(Sexp* se, MEnv* menv);
 static Node* eval_macro_primitive(Sexp* se, MEnv* menv);
 static Node* eval_primitive(Sexp* se, MEnv* menv);
+static Node* eval_binary(Sexp* se, MEnv* menv, NodeKind kind, bool left_compose, bool near_compose);
 static Node* eval_num(Sexp* se);
 static Node* eval_str(Sexp* se, MEnv* menv);
-
 
 MEnv* new_menv() {
   MEnv* menv = calloc(1, sizeof(MEnv));
@@ -126,6 +126,7 @@ static int sexp_to_str(Sexp* se, char** str) {
       buffer = realloc(buffer, size);
     }
     strncat(buffer, s, len0);
+    if (cur->next) buffer[len++] = ' ';
   }
   buffer[len++] = ')';
   *str = buffer;
@@ -134,7 +135,12 @@ static int sexp_to_str(Sexp* se, char** str) {
 
 static Node* eval_str(Sexp* se, MEnv* menv) {
   char* str; 
-  Sexp* val = lookup_symbol(menv, se->elements->next);
+  Sexp* val;
+  if (se->elements->next->tok->kind == TK_IDENT) {
+    val = lookup_symbol(menv, se->elements->next);
+  } else {
+    val = se->elements->next;
+  }
   int len = sexp_to_str(val, &str);
   Type* ty = array_of(ty_char, len + 1);
   Node* str_node = new_str_node(str, se->elements->tok);
@@ -169,7 +175,30 @@ static Node* eval_application(Sexp* se, MEnv* menv) {
 }
 
 static Node* eval_primitive(Sexp* se, MEnv* menv) {
-  return NULL;
+  Token* tok = se->elements->tok;
+#define Match(t, handle)    if (equal(tok, t)) return handle;
+  Match("+", eval_binary(se, menv, ND_ADD, true, false))
+  Match("-", eval_binary(se, menv, ND_SUB, true, false))
+  Match("*", eval_binary(se, menv, ND_MUL, true, false))
+  Match("/", eval_binary(se, menv, ND_DIV, true, false))
+#undef Match
+}
+
+static Node* eval_binary(Sexp* se, MEnv* menv, NodeKind kind, bool left_compose, bool near_compose) {
+  Token* op_tok = se->elements->tok;
+  Node* lhs = eval_sexp(se->elements->next, menv);
+  Node* rhs = eval_sexp(se->elements->next->next, menv);
+  Node* node = new_binary(kind, lhs, rhs, op_tok);
+  Sexp* rest = se->elements->next->next->next;
+
+  while (left_compose && rest) {
+    lhs = node;
+    rhs = eval_sexp(rest, menv);
+    node = new_binary(kind, lhs, rhs, op_tok);
+    rest = rest->next;
+  }
+  return node;
+
 }
 
 static Node* eval_num(Sexp* se) {

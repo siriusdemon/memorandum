@@ -4,8 +4,11 @@
 (def main() -> int
   (ASSERT 0 0)
   (ASSERT 42 42)
-  ;(ASSERT 42 (+ 20 22))
-  ;(ASSERT 42 (- 50 8))
-  ;(ASSERT 42 [+ 20 22])
+  (ASSERT 42 (+ 20 22))
+  (ASSERT 42 (- 50 8))
+  (ASSERT 42 [+ 20 22])
+  (ASSERT 42 (* 6 7))
+  (ASSERT 42 (/ 84 2))
+  (ASSERT 42 (* (+ 1 2 3) (/ 63 3 3) 1 1 1 1))
   0
 )
