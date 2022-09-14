@@ -1,0 +1,9 @@
+(defmacro ASSERT (actual expected)
+  (assert actual expected (str expected)))
+
+
+(def main() -> int
+  (ASSERT 42 (do 1 2 3 42))
+  (ASSERT 48 (do (+ 1 2 3 42)))
+  0
+)

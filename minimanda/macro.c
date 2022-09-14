@@ -18,6 +18,7 @@ Macro* macros = NULL;
 static Node* eval_sexp(Sexp* se, MEnv* menv);
 static Node* eval_list(Sexp* se, MEnv* menv);
 static Node* eval_application(Sexp* se, MEnv* menv);
+static Node* eval_do(Sexp* se, MEnv* menv);
 static Node* eval_macro_primitive(Sexp* se, MEnv* menv);
 static Node* eval_primitive(Sexp* se, MEnv* menv);
 static Node* eval_binary(Sexp* se, MEnv* menv, NodeKind kind, bool left_compose, bool near_compose);
@@ -149,6 +150,19 @@ static Node* eval_str(Sexp* se, MEnv* menv) {
   return var_node;
 }
 
+static Node* eval_do(Sexp* se, MEnv* menv) {
+  Token* tok = se->elements->tok;
+  Node head = {};
+  Node* cur = &head;
+  Sexp* secur = se->elements->next;
+  while (secur) {
+    cur->next = eval_sexp(secur, menv);
+    cur = cur->next;
+    secur = secur->next;
+  }
+  Node* node = new_do(head.next, tok);
+  return node;
+}
 
 static Node* eval_macro_primitive(Sexp* se, MEnv* menv) {
   if (equal(se->elements->tok, "str")) {
@@ -207,7 +221,9 @@ static Node* eval_num(Sexp* se) {
 }
 
 static Node* eval_list(Sexp* se, MEnv* menv) {
-  if (is_macro_primitive(se->elements->tok)) {
+  if (equal(se->elements->tok, "do")) {
+    return eval_do(se, menv); 
+  } else if (is_macro_primitive(se->elements->tok)) {
     return eval_macro_primitive(se, menv);
   } else if (is_primitive(se->elements->tok)) {
     return eval_primitive(se, menv);
