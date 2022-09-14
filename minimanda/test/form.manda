@@ -15,5 +15,10 @@
                 (let a :int 42) 
                 (let b :int 10) 
                 (- a b)))
+  (ASSERT 42 (do 
+                (let a :int 42) 
+                (set a 52)
+                (let b :int 10) 
+                (- a b)))
   0
 )

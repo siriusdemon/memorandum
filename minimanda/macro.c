@@ -18,7 +18,8 @@ Macro* macros = NULL;
 static Node* eval_sexp(Sexp* se, MEnv* menv, Env** newenv, Env* env);
 static Node* eval_list(Sexp* se, MEnv* menv, Env** newenv, Env* env);
 static Node* eval_application(Sexp* se, MEnv* menv, Env* env);
-static Node* eval_let(Sexp* se, MEnv* menv,  Env** newenv, Env* env, Var* (*alloc_var)(char* name, Type* ty));
+static Node* eval_let(Sexp* se, MEnv* menv, Env** newenv, Env* env, Var* (*alloc_var)(char* name, Type* ty));
+static Node* eval_set(Sexp* se, MEnv* menv, Env* env);
 static Node* eval_if(Sexp* se, MEnv* menv, Env* env);
 static Node* eval_do(Sexp* se, MEnv* menv, Env* env);
 static Node* eval_macro_primitive(Sexp* se, MEnv* menv, Env* env);
@@ -168,6 +169,14 @@ static Node* eval_do(Sexp* se, MEnv* menv, Env* env) {
   return node;
 }
 
+static Node* eval_set(Sexp* se, MEnv* menv, Env* env) {
+  Token* tok = se->elements->tok;
+  Node* lhs = eval_sexp(se->elements->next, menv, &env, env);
+  Node* rhs = eval_sexp(se->elements->next->next, menv, &env, env);
+  Node* node = new_set(lhs, rhs, tok);
+  return node;
+}
+
 // (let var :type val)
 static Node* eval_let(Sexp* se, MEnv* menv,  Env** newenv, Env* env, Var* (*alloc_var)(char* name, Type* ty)) {
   Token* tok = se->elements->tok;
@@ -271,6 +280,8 @@ static Node* eval_list(Sexp* se, MEnv* menv, Env** newenv, Env* env) {
     return eval_if(se, menv, env); 
   } else if (equal(se->elements->tok, "let")) {
     return eval_let(se, menv, newenv, env, new_lvar); 
+  } else if (equal(se->elements->tok, "set")) {
+    return eval_set(se, menv, env); 
   } else if (is_macro_primitive(se->elements->tok)) {
     return eval_macro_primitive(se, menv, env);
   } else if (is_primitive(se->elements->tok)) {
