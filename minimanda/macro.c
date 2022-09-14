@@ -15,16 +15,19 @@ interpreter must apply transform when it is a macro primitives.
 
 Macro* macros = NULL;
 
-static Node* eval_sexp(Sexp* se, MEnv* menv);
-static Node* eval_list(Sexp* se, MEnv* menv);
-static Node* eval_application(Sexp* se, MEnv* menv);
-static Node* eval_if(Sexp* se, MEnv* menv);
-static Node* eval_do(Sexp* se, MEnv* menv);
-static Node* eval_macro_primitive(Sexp* se, MEnv* menv);
-static Node* eval_primitive(Sexp* se, MEnv* menv);
-static Node* eval_binary(Sexp* se, MEnv* menv, NodeKind kind, bool left_compose, bool near_compose);
+static Node* eval_sexp(Sexp* se, MEnv* menv, Env** newenv, Env* env);
+static Node* eval_list(Sexp* se, MEnv* menv, Env** newenv, Env* env);
+static Node* eval_application(Sexp* se, MEnv* menv, Env* env);
+static Node* eval_let(Sexp* se, MEnv* menv,  Env** newenv, Env* env, Var* (*alloc_var)(char* name, Type* ty));
+static Node* eval_if(Sexp* se, MEnv* menv, Env* env);
+static Node* eval_do(Sexp* se, MEnv* menv, Env* env);
+static Node* eval_macro_primitive(Sexp* se, MEnv* menv, Env* env);
+static Node* eval_primitive(Sexp* se, MEnv* menv, Env* env);
+static Node* eval_binary(Sexp* se, MEnv* menv, Env* env, NodeKind kind, bool left_compose, bool near_compose);
 static Node* eval_num(Sexp* se);
-static Node* eval_str(Sexp* se, MEnv* menv);
+static Node* eval_str(Sexp* se, MEnv* menv, Env* env);
+static Type* eval_base_type(Sexp* se, MEnv* menv, Env* env);
+static Type* eval_type(Sexp* se, MEnv* menv, Env* env);
 
 MEnv* new_menv() {
   MEnv* menv = calloc(1, sizeof(MEnv));
@@ -53,7 +56,7 @@ Sexp* lookup_symbol(MEnv* menv, Sexp* symbol) {
     }
     cur = cur->next;
   }
-  error_tok(symbol->tok, "undefined variable!");
+  return NULL;
 }
 
 Macro* new_macro(Token* name, Sexp* args, Sexp* body) {
@@ -135,7 +138,7 @@ static int sexp_to_str(Sexp* se, char** str) {
   return len;
 }
 
-static Node* eval_str(Sexp* se, MEnv* menv) {
+static Node* eval_str(Sexp* se, MEnv* menv, Env* env) {
   char* str; 
   Sexp* val;
   if (se->elements->next->tok->kind == TK_IDENT) {
@@ -151,13 +154,13 @@ static Node* eval_str(Sexp* se, MEnv* menv) {
   return var_node;
 }
 
-static Node* eval_do(Sexp* se, MEnv* menv) {
+static Node* eval_do(Sexp* se, MEnv* menv, Env* env) {
   Token* tok = se->elements->tok;
   Node head = {};
   Node* cur = &head;
   Sexp* secur = se->elements->next;
   while (secur) {
-    cur->next = eval_sexp(secur, menv);
+    cur->next = eval_sexp(secur, menv, &env, env);
     cur = cur->next;
     secur = secur->next;
   }
@@ -165,27 +168,50 @@ static Node* eval_do(Sexp* se, MEnv* menv) {
   return node;
 }
 
-
-static Node* eval_if(Sexp* se, MEnv* menv) {
+// (let var :type val)
+static Node* eval_let(Sexp* se, MEnv* menv,  Env** newenv, Env* env, Var* (*alloc_var)(char* name, Type* ty)) {
   Token* tok = se->elements->tok;
-  Node* cond = eval_sexp(se->elements->next, menv);
-  Node* then = eval_sexp(se->elements->next->next, menv);
+  Sexp* se_var = se->elements->next;
+  Sexp* se_type = se_var->next->next;
+  Sexp* se_val = se_type->next;
+  if (se_var->tok->kind != TK_IDENT) {
+    error_tok(se_var->tok, "bad identifier");
+  }
+  Type* ty = eval_type(se_type, menv, env);
+  Var* var = alloc_var(strndup(se_var->tok->loc, se_var->tok->len), ty);
+  *newenv = add_var(env, var);
+  Node* lhs = new_var_node(var, se_var->tok);
+  set_binding_ctx();
+
+  Node* rhs = NULL;
+  if (se_val) {
+    rhs = eval_sexp(se_val, menv, &env, env);
+  }
+
+  Node* node = new_let(lhs, rhs, tok);
+  return node;
+}
+
+static Node* eval_if(Sexp* se, MEnv* menv, Env* env) {
+  Token* tok = se->elements->tok;
+  Node* cond = eval_sexp(se->elements->next, menv, &env, env);
+  Node* then = eval_sexp(se->elements->next->next, menv, &env, env);
   Node* els = NULL;
   if (se->elements->next->next->next) {
-    els = eval_sexp(se->elements->next->next->next, menv);
+    els = eval_sexp(se->elements->next->next->next, menv, &env, env);
   }
   Node* node = new_if(cond, then, els, tok);
   return node;
 }
 
-static Node* eval_macro_primitive(Sexp* se, MEnv* menv) {
+static Node* eval_macro_primitive(Sexp* se, MEnv* menv, Env* env) {
   if (equal(se->elements->tok, "str")) {
-    return eval_str(se, menv); 
+    return eval_str(se, menv, env); 
   }
   error_tok(se->tok, "unsupported yet!");
 }
 
-static Node* eval_application(Sexp* se, MEnv* menv) {
+static Node* eval_application(Sexp* se, MEnv* menv, Env* env) {
   Token* tok = se->tok;
   // function
   Sexp* secur = se->elements;
@@ -195,38 +221,38 @@ static Node* eval_application(Sexp* se, MEnv* menv) {
   Node head = {};
   Node* cur = &head;
   while (secur) {
-    cur->next = eval_sexp(secur, menv);
+    cur->next = eval_sexp(secur, menv, &env, env);
     cur = cur->next;
     secur = secur->next;
   }
   return new_app(fn, head.next, tok);
 }
 
-static Node* eval_primitive(Sexp* se, MEnv* menv) {
+static Node* eval_primitive(Sexp* se, MEnv* menv, Env* env) {
   Token* tok = se->elements->tok;
 #define Match(t, handle)    if (equal(tok, t)) return handle;
-  Match("+", eval_binary(se, menv, ND_ADD, true, false))
-  Match("-", eval_binary(se, menv, ND_SUB, true, false))
-  Match("*", eval_binary(se, menv, ND_MUL, true, false))
-  Match("/", eval_binary(se, menv, ND_DIV, true, false))
-  Match("=", eval_binary(se, menv, ND_EQ, false, true))
-  Match(">", eval_binary(se, menv, ND_GT, false, true))
-  Match("<", eval_binary(se, menv, ND_LT, false, true))
-  Match(">=", eval_binary(se, menv, ND_GE, false, true))
-  Match("<=", eval_binary(se, menv, ND_LE, false, true))
+  Match("+", eval_binary(se, menv, env, ND_ADD, true, false))
+  Match("-", eval_binary(se, menv, env, ND_SUB, true, false))
+  Match("*", eval_binary(se, menv, env, ND_MUL, true, false))
+  Match("/", eval_binary(se, menv, env, ND_DIV, true, false))
+  Match("=", eval_binary(se, menv, env, ND_EQ, false, true))
+  Match(">", eval_binary(se, menv, env, ND_GT, false, true))
+  Match("<", eval_binary(se, menv, env, ND_LT, false, true))
+  Match(">=", eval_binary(se, menv, env, ND_GE, false, true))
+  Match("<=", eval_binary(se, menv, env, ND_LE, false, true))
 #undef Match
 }
 
-static Node* eval_binary(Sexp* se, MEnv* menv, NodeKind kind, bool left_compose, bool near_compose) {
+static Node* eval_binary(Sexp* se, MEnv* menv, Env* env, NodeKind kind, bool left_compose, bool near_compose) {
   Token* op_tok = se->elements->tok;
-  Node* lhs = eval_sexp(se->elements->next, menv);
-  Node* rhs = eval_sexp(se->elements->next->next, menv);
+  Node* lhs = eval_sexp(se->elements->next, menv, &env, env);
+  Node* rhs = eval_sexp(se->elements->next->next, menv, &env, env);
   Node* node = new_binary(kind, lhs, rhs, op_tok);
   Sexp* rest = se->elements->next->next->next;
 
   while (left_compose && rest) {
     lhs = node;
-    rhs = eval_sexp(rest, menv);
+    rhs = eval_sexp(rest, menv, &env, env);
     node = new_binary(kind, lhs, rhs, op_tok);
     rest = rest->next;
   }
@@ -238,24 +264,38 @@ static Node* eval_num(Sexp* se) {
   return node;
 }
 
-static Node* eval_list(Sexp* se, MEnv* menv) {
+static Node* eval_list(Sexp* se, MEnv* menv, Env** newenv, Env* env) {
   if (equal(se->elements->tok, "do")) {
-    return eval_do(se, menv); 
+    return eval_do(se, menv, env); 
   } else if (equal(se->elements->tok, "if")) {
-    return eval_if(se, menv); 
+    return eval_if(se, menv, env); 
+  } else if (equal(se->elements->tok, "let")) {
+    return eval_let(se, menv, newenv, env, new_lvar); 
   } else if (is_macro_primitive(se->elements->tok)) {
-    return eval_macro_primitive(se, menv);
+    return eval_macro_primitive(se, menv, env);
   } else if (is_primitive(se->elements->tok)) {
-    return eval_primitive(se, menv);
+    return eval_primitive(se, menv, env);
   } else {
-    return eval_application(se, menv);
+    return eval_application(se, menv, env);
   }
 }
 
 
-static Node* eval_sexp(Sexp* se, MEnv* menv) {
+static Type* eval_base_type(Sexp* se, MEnv* menv, Env* env) {
+  if (equal(se->tok, "int")) {
+    return ty_int;
+  }
+  error_tok(se->tok, "invalid base type!");
+}
+
+static Type* eval_type(Sexp* se, MEnv* menv, Env* env) {
+  return eval_base_type(se, menv, env);
+}
+
+
+static Node* eval_sexp(Sexp* se, MEnv* menv, Env** newenv, Env* env) {
   if (se->kind == SE_LIST) {
-    return eval_list(se, menv);
+    return eval_list(se, menv, newenv, env);
   }
   
   Token* tok = se->tok;
@@ -264,8 +304,15 @@ static Node* eval_sexp(Sexp* se, MEnv* menv) {
   }
 
   if (tok->kind == TK_IDENT) {
-    Sexp* val = lookup_symbol(menv, se);
-    return eval_sexp(val, menv);
+    Sexp* val = lookup_symbol(menv, se); 
+    if (val) {
+      return eval_sexp(val, menv, newenv, env);
+    }
+    Var* var = lookup_var(env, tok);
+    if (var) {
+      return new_var_node(var, tok);
+    }
+    error_tok(tok, "undefined variable!");
   }
   error("invalid symbol expression");
 }
@@ -292,7 +339,7 @@ Node* macro_expand(Token** rest, Token* tok, Env* env) {
     error_tok(tok, "args number mismatch!");
   }
   // perform transformation
-  Node* node = eval_sexp(m->body, menv);
+  Node* node = eval_sexp(m->body, menv, &env, env);
   return node;
 }
 

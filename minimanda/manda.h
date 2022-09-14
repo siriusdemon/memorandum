@@ -178,8 +178,19 @@ Node* new_var_node(Var* var, Token* tok);
 Node* new_str_node(char* str, Token* tok);
 Node* new_do(Node* exprs, Token* tok);
 Node* new_if(Node* cond, Node* then, Node* els, Token* tok);
+Node* new_let(Node* lhs, Node* rhs, Token* tok);
 Node* new_binary(NodeKind kind, Node* lhs, Node* rhs, Token* tok);
 Node* register_str(Node* str_node);
+Var* new_lvar(char* name, Type *ty);
+Var* lookup_var(Env* env, Token* tok);
+Env* add_var(Env* oldenv, Var* var);
+
+bool is_array_ctx();
+bool is_binding_ctx();
+void set_array_ctx();
+void unset_array_ctx();
+void set_binding_ctx();
+void unset_binding_ctx();
 
 // type.c
 typedef enum {
@@ -234,7 +245,6 @@ Type* array_of(Type *base, int len);
 
 void codegen(Node* prog, FILE* out);
 int align_to(int n, int align);
-#endif
 
 
 //
@@ -276,3 +286,4 @@ Macro* new_macro(Token* name, Sexp* args, Sexp* body);
 void register_macro(Macro* t);
 bool is_macro(Token* tok);
 Node* macro_expand(Token** rest, Token* tok, Env* env);
+#endif

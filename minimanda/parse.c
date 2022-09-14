@@ -6,27 +6,27 @@ bool binding_ctx = false;
 // array_ctx: when a constant or literal is given in an array literal, this flag is set.
 bool array_ctx = false;
 
-static bool is_array_ctx() {
+bool is_array_ctx() {
   return array_ctx;
 }
 
-static bool is_binding_ctx() {
+bool is_binding_ctx() {
   return binding_ctx;
 }
 
-static void set_array_ctx() {
+void set_array_ctx() {
   array_ctx = true;
 }
 
-static void unset_array_ctx() {
+void unset_array_ctx() {
   array_ctx = false;
 }
 
-static void set_binding_ctx() {
+void set_binding_ctx() {
   binding_ctx = true;
 }
 
-static void unset_binding_ctx() {
+void unset_binding_ctx() {
   if (!is_array_ctx()) {
     binding_ctx = false;
   }
@@ -112,7 +112,7 @@ static Var* new_var(char* name, Type* ty) {
   return var;
 }
 
-static Var* new_lvar(char* name, Type *ty) {
+Var* new_lvar(char* name, Type *ty) {
   Var* var = new_var(name, ty);
   var->next = locals;
   var->is_local = true;
@@ -120,7 +120,7 @@ static Var* new_lvar(char* name, Type *ty) {
   return var;
 }
 
-static Var* new_gvar(char* name, Type *ty) {
+Var* new_gvar(char* name, Type *ty) {
   Var* var = new_var(name, ty);
   var->next = globals;
   var->is_local = false;

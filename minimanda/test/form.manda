@@ -5,8 +5,15 @@
 (def main() -> int
   (ASSERT 42 (do 1 2 3 42))
   (ASSERT 48 (do (+ 1 2 3 42)))
+
   (ASSERT 1 (if (< 1 2) 1 2))
   (ASSERT 2 (if (> 1 2) 1 2))
   (ASSERT 42 (if (> 1 2) 1 (* 6 7)))
+
+  (ASSERT 42 (do (let a :int 42) 42))
+  (ASSERT 32 (do 
+                (let a :int 42) 
+                (let b :int 10) 
+                (- a b)))
   0
 )
