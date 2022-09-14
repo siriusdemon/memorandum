@@ -18,6 +18,7 @@ Macro* macros = NULL;
 static Node* eval_sexp(Sexp* se, MEnv* menv);
 static Node* eval_list(Sexp* se, MEnv* menv);
 static Node* eval_application(Sexp* se, MEnv* menv);
+static Node* eval_if(Sexp* se, MEnv* menv);
 static Node* eval_do(Sexp* se, MEnv* menv);
 static Node* eval_macro_primitive(Sexp* se, MEnv* menv);
 static Node* eval_primitive(Sexp* se, MEnv* menv);
@@ -164,6 +165,19 @@ static Node* eval_do(Sexp* se, MEnv* menv) {
   return node;
 }
 
+
+static Node* eval_if(Sexp* se, MEnv* menv) {
+  Token* tok = se->elements->tok;
+  Node* cond = eval_sexp(se->elements->next, menv);
+  Node* then = eval_sexp(se->elements->next->next, menv);
+  Node* els = NULL;
+  if (se->elements->next->next->next) {
+    els = eval_sexp(se->elements->next->next->next, menv);
+  }
+  Node* node = new_if(cond, then, els, tok);
+  return node;
+}
+
 static Node* eval_macro_primitive(Sexp* se, MEnv* menv) {
   if (equal(se->elements->tok, "str")) {
     return eval_str(se, menv); 
@@ -195,6 +209,11 @@ static Node* eval_primitive(Sexp* se, MEnv* menv) {
   Match("-", eval_binary(se, menv, ND_SUB, true, false))
   Match("*", eval_binary(se, menv, ND_MUL, true, false))
   Match("/", eval_binary(se, menv, ND_DIV, true, false))
+  Match("=", eval_binary(se, menv, ND_EQ, false, true))
+  Match(">", eval_binary(se, menv, ND_GT, false, true))
+  Match("<", eval_binary(se, menv, ND_LT, false, true))
+  Match(">=", eval_binary(se, menv, ND_GE, false, true))
+  Match("<=", eval_binary(se, menv, ND_LE, false, true))
 #undef Match
 }
 
@@ -212,7 +231,6 @@ static Node* eval_binary(Sexp* se, MEnv* menv, NodeKind kind, bool left_compose,
     rest = rest->next;
   }
   return node;
-
 }
 
 static Node* eval_num(Sexp* se) {
@@ -223,6 +241,8 @@ static Node* eval_num(Sexp* se) {
 static Node* eval_list(Sexp* se, MEnv* menv) {
   if (equal(se->elements->tok, "do")) {
     return eval_do(se, menv); 
+  } else if (equal(se->elements->tok, "if")) {
+    return eval_if(se, menv); 
   } else if (is_macro_primitive(se->elements->tok)) {
     return eval_macro_primitive(se, menv);
   } else if (is_primitive(se->elements->tok)) {

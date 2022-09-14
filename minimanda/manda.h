@@ -177,6 +177,7 @@ Node* new_app(char* fn, Node* args, Token* tok);
 Node* new_var_node(Var* var, Token* tok);
 Node* new_str_node(char* str, Token* tok);
 Node* new_do(Node* exprs, Token* tok);
+Node* new_if(Node* cond, Node* then, Node* els, Token* tok);
 Node* new_binary(NodeKind kind, Node* lhs, Node* rhs, Token* tok);
 Node* register_str(Node* str_node);
 
