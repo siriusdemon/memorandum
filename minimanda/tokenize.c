@@ -102,7 +102,7 @@ static bool is_keyword(Token* tok) {
   static char *kw[] = {"let", "const", "set", "do", "def", "lambda", "if", "iset", "iget", 
     "while", "asm", "defstruct", "defenum", "match", "deftype", "defmodule", "import", 
     "export", "async", "defasync", "await", "defmacro", "with", "defunion", "typeof",
-    "true", "false",
+    "true", "false", "pointer",
   };
 
   for (int i = 0; i < sizeof(kw) / sizeof(*kw); i++)
@@ -114,7 +114,7 @@ static bool is_keyword(Token* tok) {
 bool is_primitive(Token* tok) {
   static char *kw[] = {"+", "-", "*", "/", "<", ">", ">=", "<=", "=", "and", "or", 
     "not", "xor", "sra", "srl", "sll", "bitand", "bitor", "bitnot", "bitxor",
-    "addr", "deref", "iget", "iset", "sizeof", "cast", "mod", "rem",
+    "addr", "deref", "iget", "iset", "sizeof", "cast", "mod", "rem", "struct-ref",
   };
   for (int i = 0; i < sizeof(kw) / sizeof(*kw); i++)
     if (equal(tok, kw[i]))

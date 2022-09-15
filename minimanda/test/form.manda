@@ -20,6 +20,7 @@
                 (set a 52)
                 (let b :int 10) 
                 (- a b)))
+  (ASSERT 42 (do (let i :int 42) (let b :int i) b))
   (ASSERT 10 (do (let i :int 1) (while (< i 10) (set i (+ i 1))) i))
   0
 )

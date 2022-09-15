@@ -182,6 +182,7 @@ Node* new_let(Node* lhs, Node* rhs, Token* tok);
 Node* new_set(Node* lhs, Node* rhs, Token* tok);
 Node* new_while(Node* cond, Node* then, Token* tok);
 Node* new_binary(NodeKind kind, Node* lhs, Node* rhs, Token* tok);
+Node* new_unary(NodeKind kind, Node* lhs, Token* tok);
 Node* register_str(Node* str_node);
 Var* new_lvar(char* name, Type *ty);
 Var* lookup_var(Env* env, Token* tok);

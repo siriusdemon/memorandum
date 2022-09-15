@@ -26,6 +26,7 @@ static Node* eval_do(Sexp* se, MEnv* menv, Env* env);
 static Node* eval_macro_primitive(Sexp* se, MEnv* menv, Env* env);
 static Node* eval_primitive(Sexp* se, MEnv* menv, Env* env);
 static Node* eval_binary(Sexp* se, MEnv* menv, Env* env, NodeKind kind, bool left_compose, bool near_compose);
+static Node* eval_unary(Sexp* se, MEnv* menv, Env* env, NodeKind kind);
 static Node* eval_num(Sexp* se);
 static Node* eval_str(Sexp* se, MEnv* menv, Env* env);
 static Type* eval_base_type(Sexp* se, MEnv* menv, Env* env);
@@ -108,11 +109,13 @@ bool is_macro_primitive(Token* tok) {
   return false;
 }
 
-Sexp* skip_sexp(Sexp* se, SexpKind kind) {
-  if (se->kind == kind) {
-    return se->next;
-  }
-  error_tok(se->tok, "expected sexpkind %d\n", kind);
+Sexp* new_symbol_with_token(char* str) {
+  Token* tok = calloc(1, sizeof(Token));
+  tok->kind = TK_RESERVED;
+  tok->loc = str;
+  tok->len = strlen(str);
+  Sexp* se = new_sexp(SE_SYMBOL, tok); 
+  return se;
 }
 
 static int sexp_to_str(Sexp* se, char** str) {
@@ -265,7 +268,16 @@ static Node* eval_primitive(Sexp* se, MEnv* menv, Env* env) {
   Match("<", eval_binary(se, menv, env, ND_LT, false, true))
   Match(">=", eval_binary(se, menv, env, ND_GE, false, true))
   Match("<=", eval_binary(se, menv, env, ND_LE, false, true))
+  Match("addr", eval_unary(se, menv, env, ND_ADDR))
+  Match("deref", eval_unary(se, menv, env, ND_DEREF))
 #undef Match
+}
+
+static Node* eval_unary(Sexp* se, MEnv* menv, Env* env, NodeKind kind) {
+  Token* tok = se->tok;
+  Node* lhs = eval_sexp(se->elements->next, menv, &env, env);
+  Node* node = new_unary(kind, lhs, tok);
+  return node;
 }
 
 static Node* eval_binary(Sexp* se, MEnv* menv, Env* env, NodeKind kind, bool left_compose, bool near_compose) {
@@ -310,6 +322,15 @@ static Node* eval_list(Sexp* se, MEnv* menv, Env** newenv, Env* env) {
 }
 
 
+bool is_type(Token* tok) {
+  static char *kw[] = {"int", "char", "long", "short"};
+  for (int i = 0; i < sizeof(kw) / sizeof(*kw); i++)
+    if (equal(tok, kw[i]))
+      return true;
+  return false;
+}
+
+
 static Type* eval_base_type(Sexp* se, MEnv* menv, Env* env) {
   if (equal(se->tok, "int")) {
     return ty_int;
@@ -317,7 +338,18 @@ static Type* eval_base_type(Sexp* se, MEnv* menv, Env* env) {
   error_tok(se->tok, "invalid base type!");
 }
 
+static Type* eval_pointer_type(Sexp* se, MEnv* menv, Env* env) {
+  Type* base = eval_type(se->elements->next, menv, env);
+  return pointer_to(base);
+}
+
 static Type* eval_type(Sexp* se, MEnv* menv, Env* env) {
+  if (se->kind == SE_LIST) {
+    if (equal(se->elements->tok, "pointer")) {
+      return eval_pointer_type(se, menv, env);
+    }
+    error_tok(se->tok, "unsupported yet!");
+  }
   return eval_base_type(se, menv, env);
 }
 
@@ -382,6 +414,41 @@ Sexp* parse_sexp(Token** rest, Token* tok) {
 }
 
 Sexp* parse_sexp_symbol(Token** rest, Token* tok) {
+  if (equal(tok, "&")) {
+    Sexp* list = new_sexp(SE_LIST, tok);
+    list->elements = new_symbol_with_token("addr");
+    list->elements->next = parse_sexp(&tok, tok->next);
+    *rest = tok;
+    return list;
+  }
+
+  if (tok->kind == TK_IDENT) {
+    Sexp* se = new_sexp(SE_SYMBOL, tok);
+    tok = tok->next;
+    while (equal(tok, ".")) {
+      if (equal(tok->next, "*")) {
+        Sexp* list = new_sexp(SE_LIST, tok->next);
+        list->elements = new_symbol_with_token("deref");
+        list->elements->next = se;
+        se = list;
+        tok = tok->next->next;
+      } else {
+        error_tok(tok, "unsupport yet!");
+      }
+    }
+    *rest = tok;
+    return se;
+  }
+
+  // pointer type
+  if (equal(tok, "*") && (equal(tok->next, "*") || is_type(tok->next))) {
+    Sexp* list = new_sexp(SE_LIST, tok);
+    list->elements = new_symbol_with_token("pointer");
+    list->elements->next = parse_sexp(&tok, tok->next);
+    *rest = tok;
+    return list;
+  }
+  
   Sexp* s = new_sexp(SE_SYMBOL, tok);
   *rest = tok->next;
   return s;
