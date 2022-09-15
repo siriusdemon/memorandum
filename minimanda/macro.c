@@ -20,6 +20,7 @@ static Node* eval_list(Sexp* se, MEnv* menv, Env** newenv, Env* env);
 static Node* eval_application(Sexp* se, MEnv* menv, Env* env);
 static Node* eval_let(Sexp* se, MEnv* menv, Env** newenv, Env* env, Var* (*alloc_var)(char* name, Type* ty));
 static Node* eval_set(Sexp* se, MEnv* menv, Env* env);
+static Node* eval_while(Sexp* se, MEnv* menv, Env* env);
 static Node* eval_if(Sexp* se, MEnv* menv, Env* env);
 static Node* eval_do(Sexp* se, MEnv* menv, Env* env);
 static Node* eval_macro_primitive(Sexp* se, MEnv* menv, Env* env);
@@ -169,6 +170,21 @@ static Node* eval_do(Sexp* se, MEnv* menv, Env* env) {
   return node;
 }
 
+static Node* eval_while(Sexp* se, MEnv* menv, Env* env) {
+  Token* tok = se->elements->tok;
+  Node* cond = eval_sexp(se->elements->next, menv, &env, env);
+  Node head = {};
+  Node* cur = &head;
+  Sexp* rest = se->elements->next->next;
+  while (rest) {
+    cur->next = eval_sexp(rest, menv, &env, env);
+    cur = cur->next;
+    rest = rest->next;
+  }
+  Node* node = new_while(cond, head.next, tok);
+  return node;
+}
+
 static Node* eval_set(Sexp* se, MEnv* menv, Env* env) {
   Token* tok = se->elements->tok;
   Node* lhs = eval_sexp(se->elements->next, menv, &env, env);
@@ -282,6 +298,8 @@ static Node* eval_list(Sexp* se, MEnv* menv, Env** newenv, Env* env) {
     return eval_let(se, menv, newenv, env, new_lvar); 
   } else if (equal(se->elements->tok, "set")) {
     return eval_set(se, menv, env); 
+  } else if (equal(se->elements->tok, "while")) {
+    return eval_while(se, menv, env); 
   } else if (is_macro_primitive(se->elements->tok)) {
     return eval_macro_primitive(se, menv, env);
   } else if (is_primitive(se->elements->tok)) {
