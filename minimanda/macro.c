@@ -18,6 +18,7 @@ Macro* macros = NULL;
 static Node* eval_sexp(Sexp* se, MEnv* menv, Env** newenv, Env* env);
 static Node* eval_list(Sexp* se, MEnv* menv, Env** newenv, Env* env);
 static Node* eval_application(Sexp* se, MEnv* menv, Env* env);
+static Node* eval_def(Sexp* se, MEnv* menv, Env** newenv, Env* env);
 static Node* eval_let(Sexp* se, MEnv* menv, Env** newenv, Env* env, Var* (*alloc_var)(char* name, Type* ty));
 static Node* eval_set(Sexp* se, MEnv* menv, Env* env);
 static Node* eval_while(Sexp* se, MEnv* menv, Env* env);
@@ -107,6 +108,13 @@ bool is_macro_primitive(Token* tok) {
     if (equal(tok, kw[i]))
       return true;
   return false;
+}
+
+Sexp* skip_sexp(Sexp* se, char* s) {
+  if (!equal(se->tok, s)) {
+    error_tok(se->tok, "expected '%s'", s);
+  }
+  return se->next;
 }
 
 Sexp* new_symbol_with_token(char* str) {
@@ -200,7 +208,7 @@ static Node* eval_set(Sexp* se, MEnv* menv, Env* env) {
 static Node* eval_let(Sexp* se, MEnv* menv,  Env** newenv, Env* env, Var* (*alloc_var)(char* name, Type* ty)) {
   Token* tok = se->elements->tok;
   Sexp* se_var = se->elements->next;
-  Sexp* se_type = se_var->next->next;
+  Sexp* se_type = skip_sexp(se_var->next, ":");
   Sexp* se_val = se_type->next;
   if (se_var->tok->kind != TK_IDENT) {
     error_tok(se_var->tok, "bad identifier");
@@ -237,6 +245,40 @@ static Node* eval_macro_primitive(Sexp* se, MEnv* menv, Env* env) {
     return eval_str(se, menv, env); 
   }
   error_tok(se->tok, "unsupported yet!");
+}
+
+static Node* eval_def(Sexp* se, MEnv* menv, Env** newenv, Env* env) {
+  Token* tok = se->tok;  
+  Sexp* se_fn = skip_sexp(se->elements, "def");
+  Sexp* se_args = se_fn->next->elements;
+  Sexp* se_type = skip_sexp(se_fn->next->next, "->");
+  Sexp* se_body = se_type->next;  
+  char* fn = strndup(se_fn->tok->loc, se_fn->tok->len);  
+  // args parsing
+  locals = NULL;
+  Node head_args = {};
+  Node* cur = &head_args;
+  while (se_args) {
+    Token* tok_arg = se_args->tok;
+    Type* ty = eval_type(se_args->next, menv, env);
+    Var* var = new_lvar(strndup(tok_arg->loc, tok_arg->len), ty);
+    cur->next = new_var_node(var, tok_arg);
+    cur = cur->next;
+    se_args = se_args->next->next;
+    env = add_var(env, var);
+  }
+
+  Type* ret_ty = eval_type(se_type, menv, env);
+
+  // body
+  Node head_body = {};
+  cur = &head_body;
+  while (se_body) {
+    cur->next = eval_sexp(se_body, menv, &env, env);
+    cur = cur->next;
+    se_body = se_body->next;
+  }
+  return new_function(fn, ret_ty, head_args.next, head_body.next, tok);
 }
 
 static Node* eval_application(Sexp* se, MEnv* menv, Env* env) {
@@ -312,6 +354,8 @@ static Node* eval_list(Sexp* se, MEnv* menv, Env** newenv, Env* env) {
     return eval_set(se, menv, env); 
   } else if (equal(se->elements->tok, "while")) {
     return eval_while(se, menv, env); 
+  } else if (equal(se->elements->tok, "def")) {
+    return eval_def(se, menv, newenv, env); 
   } else if (is_macro_primitive(se->elements->tok)) {
     return eval_macro_primitive(se, menv, env);
   } else if (is_primitive(se->elements->tok)) {

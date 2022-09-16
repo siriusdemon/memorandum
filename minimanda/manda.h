@@ -169,6 +169,8 @@ struct Var {
   bool is_local;
 };
 
+extern Var* locals;
+
 Node* parse(Token*);
 Node* new_node(NodeKind kind, Token* tok);
 Node* new_num(int64_t val, Token* tok);
@@ -181,6 +183,7 @@ Node* new_if(Node* cond, Node* then, Node* els, Token* tok);
 Node* new_let(Node* lhs, Node* rhs, Token* tok);
 Node* new_set(Node* lhs, Node* rhs, Token* tok);
 Node* new_while(Node* cond, Node* then, Token* tok);
+Node* new_function(char* fn, Type* ret_ty, Node* args, Node* body, Token* tok);
 Node* new_binary(NodeKind kind, Node* lhs, Node* rhs, Token* tok);
 Node* new_unary(NodeKind kind, Node* lhs, Token* tok);
 Node* register_str(Node* str_node);

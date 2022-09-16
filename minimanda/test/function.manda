@@ -1,0 +1,16 @@
+(defmacro ASSERT (actual expected)
+  (assert actual expected (str expected)))
+
+(def ret3() -> int 3)
+
+(def cc(a int b int c int d int e int f int) -> int 
+    (* a (- e d) (+ b c f)))
+
+(def add(a int b int) -> int (+ a b))
+
+(def main() -> int
+  (ASSERT 3 (ret3))
+  (ASSERT 11 (cc 1 2 3 4 5 6))
+  (ASSERT 42 (add 12 30))
+  0
+)
