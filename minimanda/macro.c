@@ -153,7 +153,7 @@ static int sexp_to_str(Sexp* se, char** str) {
   return len;
 }
 
-static Node* eval_str(Sexp* se, MEnv* menv, Env* env) {
+static Node* eval_macro_str(Sexp* se, MEnv* menv, Env* env) {
   char* str; 
   Sexp* val;
   if (se->elements->next->tok->kind == TK_IDENT) {
@@ -165,6 +165,18 @@ static Node* eval_str(Sexp* se, MEnv* menv, Env* env) {
   Type* ty = array_of(ty_char, len + 1);
   Node* str_node = new_str_node(str, se->elements->tok);
   str_node->ty = ty;
+  Node* var_node = register_str(str_node);
+  return var_node;
+}
+
+static Node* eval_str(Sexp* se, MEnv* menv, Env* env) {
+  Type* ty = array_of(ty_char, strlen(se->tok->str) + 1);
+  Node* str_node = new_str_node(se->tok->str, se->tok);
+  str_node->ty = ty;
+  if (is_binding_ctx()) {
+    unset_binding_ctx();
+    return str_node;
+  }
   Node* var_node = register_str(str_node);
   return var_node;
 }
@@ -244,7 +256,7 @@ static Node* eval_if(Sexp* se, MEnv* menv, Env* env) {
 
 static Node* eval_macro_primitive(Sexp* se, MEnv* menv, Env* env) {
   if (equal(se->elements->tok, "str")) {
-    return eval_str(se, menv, env); 
+    return eval_macro_str(se, menv, env); 
   }
   error_tok(se->tok, "unsupported yet!");
 }
@@ -461,6 +473,10 @@ static Node* eval_sexp(Sexp* se, MEnv* menv, Env** newenv, Env* env) {
       return new_var_node(var, tok);
     }
     error_tok(tok, "undefined variable!");
+  }
+
+  if (tok->kind == TK_STR) {
+    return eval_str(se, menv, env);
   }
   error("invalid symbol expression");
 }

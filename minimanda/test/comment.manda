@@ -1,0 +1,11 @@
+(defmacro ASSERT (actual expected)
+  (assert actual expected (str expected)))
+
+(def main() -> int
+    (ASSERT 42 ;(let hahahh: NonExist)
+            42)
+    (ASSERT 42 ;;;
+            42 ;;;
+            );
+    0
+) 

@@ -1,0 +1,22 @@
+(defmacro ASSERT (actual expected)
+  (assert actual expected (str expected)))
+
+
+(def main() -> int
+    (ASSERT 97 (iget "abc" 0))
+    (ASSERT 98 (iget "abc" 1))
+    (ASSERT 99 (iget "abc" 2))
+    (ASSERT 0 (iget "abc" 3))
+    (ASSERT 0 (iget "abc" 3))
+
+    (ASSERT 7 (iget "\a" 0))
+    (ASSERT 8 (iget "\b" 0))
+    (ASSERT 9 (iget "\t" 0))
+    (ASSERT 10 (iget "\n" 0))
+    (ASSERT 11 (iget "\v" 0))
+    (ASSERT 12 (iget "\f" 0))
+    (ASSERT 13 (iget "\r" 0))
+    (ASSERT 27 (iget "\e" 0))
+
+0)
+

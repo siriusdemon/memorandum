@@ -548,7 +548,7 @@ Node* parse_str(Token** rest, Token* tok, Env* env) {
     return str_node;
   }
   Node* var_node = register_str(str_node);
- *rest = tok->next;
+  *rest = tok->next;
   return var_node;
 }
 
