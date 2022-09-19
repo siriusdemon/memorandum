@@ -401,6 +401,9 @@ static Type* eval_base_type(Sexp* se, MEnv* menv, Env* env) {
   if (equal(se->tok, "int")) {
     return ty_int;
   }
+  if (equal(se->tok, "char")) {
+    return ty_char;
+  }
   error_tok(se->tok, "invalid base type!");
 }
 

@@ -1,0 +1,9 @@
+(defmacro ASSERT (actual expected)
+  (assert actual expected (str expected)))
+
+
+(def main() -> int
+    (ASSERT 1 (do (let c: char 1) c))
+    (ASSERT 1 (do (sizeof char)))
+    0
+)
