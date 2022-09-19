@@ -26,6 +26,7 @@ static Node* eval_if(Sexp* se, MEnv* menv, Env* env);
 static Node* eval_do(Sexp* se, MEnv* menv, Env* env);
 static Node* eval_macro_primitive(Sexp* se, MEnv* menv, Env* env);
 static Node* eval_primitive(Sexp* se, MEnv* menv, Env* env);
+static Node* eval_triple(Sexp* se, MEnv* menv, Env* env, NodeKind kind);
 static Node* eval_binary(Sexp* se, MEnv* menv, Env* env, NodeKind kind, bool left_compose, bool near_compose);
 static Node* eval_unary(Sexp* se, MEnv* menv, Env* env, NodeKind kind);
 static Node* eval_num(Sexp* se);
@@ -310,6 +311,8 @@ static Node* eval_primitive(Sexp* se, MEnv* menv, Env* env) {
   Match("<", eval_binary(se, menv, env, ND_LT, false, true))
   Match(">=", eval_binary(se, menv, env, ND_GE, false, true))
   Match("<=", eval_binary(se, menv, env, ND_LE, false, true))
+  Match("iget", eval_binary(se, menv, env, ND_IGET, true, false))
+  Match("iset", eval_triple(se, menv, env, ND_ISET))
   Match("addr", eval_unary(se, menv, env, ND_ADDR))
   Match("deref", eval_unary(se, menv, env, ND_DEREF))
 #undef Match
@@ -335,6 +338,15 @@ static Node* eval_binary(Sexp* se, MEnv* menv, Env* env, NodeKind kind, bool lef
     node = new_binary(kind, lhs, rhs, op_tok);
     rest = rest->next;
   }
+  return node;
+}
+
+static Node* eval_triple(Sexp* se, MEnv* menv, Env* env, NodeKind kind) {
+  Token* op_tok = se->elements->tok;
+  Node* lhs = eval_sexp(se->elements->next, menv, &env, env);
+  Node* mhs = eval_sexp(se->elements->next->next, menv, &env, env);
+  Node* rhs = eval_sexp(se->elements->next->next->next, menv, &env, env);
+  Node* node = new_triple(kind, lhs, mhs, rhs, op_tok);
   return node;
 }
 
@@ -374,6 +386,9 @@ bool is_type(Token* tok) {
   return false;
 }
 
+bool is_array(Token* tok) {
+  return (is_list(tok)) && (tok->next->kind == TK_NUM);
+}
 
 static Type* eval_base_type(Sexp* se, MEnv* menv, Env* env) {
   if (equal(se->tok, "int")) {
@@ -387,12 +402,30 @@ static Type* eval_pointer_type(Sexp* se, MEnv* menv, Env* env) {
   return pointer_to(base);
 }
 
+static Type* eval_array_type_helper(Sexp* se, MEnv* menv, Env* env) {
+  int len = se->tok->val;
+  Sexp* se_base = se->next;
+  Type* ty_base;
+  if (se_base->tok->kind == TK_NUM) {
+    ty_base = eval_array_type_helper(se_base, menv, env); 
+  } else {
+    ty_base = eval_type(se_base, menv, env);
+  }
+  return array_of(ty_base, len);
+}
+
+static Type* eval_array_type(Sexp* se, MEnv* menv, Env* env) {
+  return eval_array_type_helper(se->elements, menv, env);
+}
+
 static Type* eval_type(Sexp* se, MEnv* menv, Env* env) {
   if (se->kind == SE_LIST) {
     if (equal(se->elements->tok, "pointer")) {
       return eval_pointer_type(se, menv, env);
     }
-    error_tok(se->tok, "unsupported yet!");
+    if (se->elements->tok->kind == TK_NUM) {
+      return eval_array_type(se, menv, env);
+    }
   }
   return eval_base_type(se, menv, env);
 }
@@ -484,8 +517,8 @@ Sexp* parse_sexp_symbol(Token** rest, Token* tok) {
     return se;
   }
 
-  // pointer type
-  if (equal(tok, "*") && (equal(tok->next, "*") || is_type(tok->next))) {
+  // pointer type, there may be another better way to do this
+  if (equal(tok, "*") && (equal(tok->next, "*") || is_type(tok->next) || is_array(tok->next))) {
     Sexp* list = new_sexp(SE_LIST, tok);
     list->elements = new_symbol_with_token("pointer");
     list->elements->next = parse_sexp(&tok, tok->next);

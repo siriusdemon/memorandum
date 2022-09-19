@@ -1,0 +1,33 @@
+(defmacro ASSERT (actual expected)
+  (assert actual expected (str expected)))
+
+(def main() -> int
+    (ASSERT 0 (do (let a: [32 int]) 0))
+    (ASSERT 0 (do (let a: [32 *int]) 0))
+    (ASSERT 0 (do (let a: *[32 int]) 0))
+    (ASSERT 0 (do (let a :[32 int]) (let b :[32 int])  0))
+    (ASSERT 0 (do 
+                (let a :*[32 int]) 
+                (let b :[32 *int])  
+                (let c :*[32 *[32 int]])  
+                0))
+    (ASSERT 1 (do
+                (let a :[32 int])
+                (iset a 0 1)
+                (iset a 1 2)
+                (iget a 0)))
+    (ASSERT 42 (do
+                (let a :[32 int])
+                (let p :*[32 int] &a)
+                (iset p.* 0 42)
+                (iget p.* 0)))
+
+    (ASSERT 42 (do (let a :[32 [32 int]]) 
+                (iset (iget a 0) 0 42) 
+                (iget (iget a 0) 0)))
+
+    (ASSERT 42 (do (let a :[32 32 int]) 
+                   (iset (iget a 0) 0 42) 
+                   (iget (iget a 0) 0)))
+    0
+)
