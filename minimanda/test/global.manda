@@ -1,0 +1,14 @@
+(defmacro ASSERT (actual expected)
+  (assert actual expected (str expected)))
+
+
+(let g: int)
+(let h: int)
+(let k: int)
+
+(def main() -> int
+    (ASSERT 0 g)
+    (ASSERT 42 (do (set h 42) h))
+    (ASSERT 42 (do (let k: int 42) k))
+    0
+)
