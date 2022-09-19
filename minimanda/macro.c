@@ -29,6 +29,7 @@ static Node* eval_primitive(Sexp* se, MEnv* menv, Env* env);
 static Node* eval_triple(Sexp* se, MEnv* menv, Env* env, NodeKind kind);
 static Node* eval_binary(Sexp* se, MEnv* menv, Env* env, NodeKind kind, bool left_compose, bool near_compose);
 static Node* eval_unary(Sexp* se, MEnv* menv, Env* env, NodeKind kind);
+static Node* eval_sizeof(Sexp* se, MEnv* menv, Env* env);
 static Node* eval_num(Sexp* se);
 static Node* eval_str(Sexp* se, MEnv* menv, Env* env);
 static Type* eval_base_type(Sexp* se, MEnv* menv, Env* env);
@@ -315,7 +316,13 @@ static Node* eval_primitive(Sexp* se, MEnv* menv, Env* env) {
   Match("iset", eval_triple(se, menv, env, ND_ISET))
   Match("addr", eval_unary(se, menv, env, ND_ADDR))
   Match("deref", eval_unary(se, menv, env, ND_DEREF))
+  Match("sizeof", eval_sizeof(se, menv, env))
 #undef Match
+}
+
+static Node* eval_sizeof(Sexp* se, MEnv* menv, Env* env) {
+  Type* ty = eval_type(se->elements->next, menv, env);
+  return new_num(ty->size, se->elements->next->tok);
 }
 
 static Node* eval_unary(Sexp* se, MEnv* menv, Env* env, NodeKind kind) {
