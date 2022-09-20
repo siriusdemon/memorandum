@@ -187,10 +187,16 @@ Node* new_function(char* fn, Type* ret_ty, Node* args, Node* body, Token* tok);
 Node* new_triple(NodeKind kind, Node* lhs, Node* mhs, Node* rhs, Token* tok);
 Node* new_binary(NodeKind kind, Node* lhs, Node* rhs, Token* tok);
 Node* new_unary(NodeKind kind, Node* lhs, Token* tok);
+Member* new_member(Token* tok, Type* ty);
+Member* get_struct_member(Type* ty, Token* tok);
+Type* new_struct_type(int size, int align, Member* members);
 Node* register_str(Node* str_node);
 Var* new_lvar(char* name, Type *ty);
+Var* new_var(char* name, Type* ty);
 Var* lookup_var(Env* env, Token* tok);
 Env* add_var(Env* oldenv, Var* var);
+Env* add_tag(Env* oldenv, Var* var);
+Type* lookup_tag(Env* env, Token* tok);
 
 bool is_array_ctx();
 bool is_binding_ctx();

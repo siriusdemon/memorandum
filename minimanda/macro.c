@@ -19,6 +19,8 @@ static Node* eval_sexp(Sexp* se, MEnv* menv, Env** newenv, Env* env);
 static Node* eval_list(Sexp* se, MEnv* menv, Env** newenv, Env* env);
 static Node* eval_application(Sexp* se, MEnv* menv, Env* env);
 static Node* eval_def(Sexp* se, MEnv* menv, Env** newenv, Env* env);
+static Node* eval_defstruct(Sexp* se, MEnv* menv, Env** newenv, Env* env);
+static Node* eval_struct_ref(Sexp* se, MEnv* menv, Env* env);
 static Node* eval_let(Sexp* se, MEnv* menv, Env** newenv, Env* env, Var* (*alloc_var)(char* name, Type* ty));
 static Node* eval_set(Sexp* se, MEnv* menv, Env* env);
 static Node* eval_while(Sexp* se, MEnv* menv, Env* env);
@@ -261,6 +263,48 @@ static Node* eval_macro_primitive(Sexp* se, MEnv* menv, Env* env) {
   error_tok(se->tok, "unsupported yet!");
 }
 
+static Node* eval_struct_ref(Sexp* se, MEnv* menv, Env* env) {
+  Node* lhs = eval_sexp(se->elements->next, menv, &env, env);
+  add_type(lhs);
+  if (lhs->ty->kind != TY_STRUCT) {
+    error_tok(lhs->tok, "not a struct");
+  }
+  Node* node = new_unary(ND_STRUCT_REF, lhs, se->tok);
+  node->member = get_struct_member(lhs->ty, se->elements->next->next->tok);
+  return node;
+}
+
+static Node* eval_defstruct(Sexp* se, MEnv* menv, Env** newenv, Env* env) {
+  Token* tok = se->tok;
+  Sexp* se_tag = se->elements->next;
+  Sexp* members = se_tag->next;
+
+  char* name = strndup(se_tag->tok->loc, se_tag->tok->len);
+
+  // members
+  Member head = {};
+  Member* cur = &head;
+  int offset = 0;
+  int max_align = 1;
+  while (members) {
+    Token* mem_tok = members->tok;
+    Type* ty = eval_type(members->next, menv, env);
+    Member* mem = new_member(mem_tok, ty);
+    offset = align_to(offset, ty->align);
+    mem->offset = offset;
+    offset += ty->size;
+
+    cur->next = mem;
+    cur = cur->next;
+    max_align = ty->align < max_align? max_align : ty->align;
+  }
+
+  Type* ty = new_struct_type(align_to(offset, max_align), max_align, head.next);
+  Var* tag = new_var(name, ty);
+  *newenv = add_tag(env, tag);
+  return new_node(ND_DEFSTRUCT, tok);
+}
+
 static Node* eval_def(Sexp* se, MEnv* menv, Env** newenv, Env* env) {
   Token* tok = se->tok;  
   Sexp* se_fn = skip_sexp(se->elements, "def");
@@ -387,6 +431,10 @@ static Node* eval_list(Sexp* se, MEnv* menv, Env** newenv, Env* env) {
     return eval_while(se, menv, env); 
   } else if (equal(se->elements->tok, "def")) {
     return eval_def(se, menv, newenv, env); 
+  } else if (equal(se->elements->tok, "def")) {
+    return eval_defstruct(se, menv, newenv, env); 
+  } else if (equal(se->elements->tok, "struct-ref")) {
+    return eval_struct_ref(se, menv, env); 
   } else if (is_macro_primitive(se->elements->tok)) {
     return eval_macro_primitive(se, menv, env);
   } else if (is_primitive(se->elements->tok)) {
@@ -415,6 +463,10 @@ static Type* eval_base_type(Sexp* se, MEnv* menv, Env* env) {
   }
   if (equal(se->tok, "char")) {
     return ty_char;
+  }
+  Type* ty = lookup_tag(env, se->tok);
+  if (ty) {
+    return ty;
   }
   error_tok(se->tok, "invalid base type!");
 }
@@ -536,7 +588,13 @@ Sexp* parse_sexp_symbol(Token** rest, Token* tok) {
         se = list;
         tok = tok->next->next;
       } else {
-        error_tok(tok, "unsupport yet!");
+        // a.v -> (struct-ref a v)
+        Sexp* list = new_sexp(SE_LIST, tok);
+        list->elements = new_symbol_with_token("struct-ref");
+        se->next = new_sexp(SE_SYMBOL, tok->next);
+        list->elements->next = se;
+        se = list;
+        tok = tok->next->next;
       }
     }
     *rest = tok;

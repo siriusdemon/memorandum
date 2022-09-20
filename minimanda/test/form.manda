@@ -22,5 +22,14 @@
                 (- a b)))
   (ASSERT 42 (do (let i :int 42) (let b :int i) b))
   (ASSERT 10 (do (let i :int 1) (while (< i 10) (set i (+ i 1))) i))
+  (ASSERT 12 (do
+            (let a :int 1)
+            (let b :int 2)
+            (+ (do 
+                (let c :int 9) 
+                (let b :int 8)
+                (let a :int 7)
+                c)
+                a b)))
   0
 )

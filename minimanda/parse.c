@@ -105,7 +105,7 @@ Node* parse_deftype(Token** rest, Token* tok, Env** newenv, Env* env);
 Node* parse_defmacro(Token** rest, Token* tok, Env** newenv, Env* env);
 static Type* parse_type(Token** rest, Token* tok, Env* env);
 
-static Var* new_var(char* name, Type* ty) {
+Var* new_var(char* name, Type* ty) {
   Var* var = calloc(1, sizeof(Var));
   var->name = name;
   var->ty = ty;
@@ -128,7 +128,7 @@ Var* new_gvar(char* name, Type *ty) {
   return var;
 }
 
-static Member* new_member(Token* tok, Type* ty) {
+Member* new_member(Token* tok, Type* ty) {
   Member* mem = calloc(1, sizeof(Member));
   mem->tok = tok;
   mem->ty = ty;
@@ -579,7 +579,7 @@ Node* parse_application(Token** rest, Token* tok, Env* env) {
   return new_app(fn, head.next, tok_app);
 }
 
-static Member* get_struct_member(Type* ty, Token* tok) {
+Member* get_struct_member(Type* ty, Token* tok) {
   for (Member* mem = ty->members; mem; mem = mem->next)
     if (mem->tok->len == tok->len &&
         !strncmp(mem->tok->loc, tok->loc, tok->len))
