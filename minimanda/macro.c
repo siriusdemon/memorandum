@@ -294,6 +294,7 @@ static Node* eval_defstruct(Sexp* se, MEnv* menv, Env** newenv, Env* env) {
     mem->offset = offset;
     offset += ty->size;
 
+    members = members->next->next;
     cur->next = mem;
     cur = cur->next;
     max_align = ty->align < max_align? max_align : ty->align;
@@ -431,7 +432,7 @@ static Node* eval_list(Sexp* se, MEnv* menv, Env** newenv, Env* env) {
     return eval_while(se, menv, env); 
   } else if (equal(se->elements->tok, "def")) {
     return eval_def(se, menv, newenv, env); 
-  } else if (equal(se->elements->tok, "def")) {
+  } else if (equal(se->elements->tok, "defstruct")) {
     return eval_defstruct(se, menv, newenv, env); 
   } else if (equal(se->elements->tok, "struct-ref")) {
     return eval_struct_ref(se, menv, env); 

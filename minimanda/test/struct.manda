@@ -11,12 +11,12 @@
                 (set a.gender 1)
                 (set a.age 12)
                 a.age))
-  ;  (ASSERT 1 (do
-  ;              (let a :Man)
-  ;              (set a.age 10)
-  ;              (defstruct Man gender int)
-  ;              (let b: Man)
-  ;              (set b.gender 1)
-  ;              b.gender))
+    (ASSERT 1 (do
+                (let a :Man)
+                (set a.age 10)
+                (defstruct Man gender int)
+                (let b: Man)
+                (set b.gender 1)
+                b.gender))
     0
 )
