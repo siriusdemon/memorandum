@@ -35,6 +35,7 @@ static Node* eval_unary(Sexp* se, MEnv* menv, Env* env, NodeKind kind);
 static Node* eval_sizeof(Sexp* se, MEnv* menv, Env* env);
 static Node* eval_num(Sexp* se);
 static Node* eval_str(Sexp* se, MEnv* menv, Env* env);
+static Node* eval_deftype(Sexp* se, MEnv* menv, Env** newenv, Env* env);
 static Type* eval_base_type(Sexp* se, MEnv* menv, Env* env);
 static Type* eval_type(Sexp* se, MEnv* menv, Env* env);
 
@@ -470,6 +471,8 @@ static Node* eval_list(Sexp* se, MEnv* menv, Env** newenv, Env* env) {
     return eval_defunion(se, menv, newenv, env); 
   } else if (equal(se->elements->tok, "struct-ref")) {
     return eval_struct_ref(se, menv, env); 
+  } else if (equal(se->elements->tok, "deftype")) {
+    return eval_deftype(se, menv, newenv, env); 
   } else if (is_macro_primitive(se->elements->tok)) {
     return eval_macro_primitive(se, menv, env);
   } else if (is_primitive(se->elements->tok)) {
@@ -490,6 +493,17 @@ bool is_type(Token* tok) {
 
 bool is_array(Token* tok) {
   return (is_list(tok)) && (tok->next->kind == TK_NUM);
+}
+
+static Node* eval_deftype(Sexp* se, MEnv* menv, Env** newenv, Env* env) {
+  Token* tok = se->elements->tok;
+  Sexp* se_tag = se->elements->next;
+  Sexp* se_ty = se_tag->next;
+  char* name = strndup(se_tag->tok->loc, se_tag->tok->len);
+  Type* ty = eval_type(se_ty, menv, env);
+  Var* tag = new_var(name, ty);
+  *newenv = add_tag(env, tag);
+  return new_node(ND_DEFTYPE, tok);
 }
 
 static Type* eval_base_type(Sexp* se, MEnv* menv, Env* env) {

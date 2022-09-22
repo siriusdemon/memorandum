@@ -5,5 +5,15 @@
     (ASSERT 8 (do (sizeof *int)))
     (ASSERT 40 (do (sizeof [5 *int])))
     (ASSERT 100 (do (sizeof [5 5 int])))
+    (ASSERT 2 (do (deftype MyType short) (sizeof MyType)))
+    (ASSERT 28 (do    
+                (defstruct Man gender int age int)
+                (deftype X Man)
+                (let c :X)
+                (set c.age 20)
+                (+ (sizeof X) c.age)))
+    (ASSERT 12 (do (deftype X short) 
+                    (let X :X 10)
+                    (+ X (sizeof X))))
     0
 )
