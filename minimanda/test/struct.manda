@@ -4,6 +4,14 @@
 (defstruct My gender int age int)
 (defstruct Man age int)
 
+(defunion U1 
+    gender int 
+    X Man)
+
+(defunion U2
+    X int
+    Y My)
+
 (def main() -> int
     (ASSERT 42 42)
     (ASSERT 12 (do
@@ -18,5 +26,13 @@
                 (let b: Man)
                 (set b.gender 1)
                 b.gender))
+    (ASSERT 10 (do
+                (let a : U1)
+                (set a.X.age 10)
+                a.gender))
+    (ASSERT 100 (do
+                (let a : U2)
+                (set a.X 100)
+                a.Y.gender))
     0
 )

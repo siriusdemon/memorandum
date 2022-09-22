@@ -20,6 +20,7 @@ static Node* eval_list(Sexp* se, MEnv* menv, Env** newenv, Env* env);
 static Node* eval_application(Sexp* se, MEnv* menv, Env* env);
 static Node* eval_def(Sexp* se, MEnv* menv, Env** newenv, Env* env);
 static Node* eval_defstruct(Sexp* se, MEnv* menv, Env** newenv, Env* env);
+static Node* eval_defunion(Sexp* se, MEnv* menv, Env** newenv, Env* env);
 static Node* eval_struct_ref(Sexp* se, MEnv* menv, Env* env);
 static Node* eval_let(Sexp* se, MEnv* menv, Env** newenv, Env* env, Var* (*alloc_var)(char* name, Type* ty));
 static Node* eval_set(Sexp* se, MEnv* menv, Env* env);
@@ -266,12 +267,43 @@ static Node* eval_macro_primitive(Sexp* se, MEnv* menv, Env* env) {
 static Node* eval_struct_ref(Sexp* se, MEnv* menv, Env* env) {
   Node* lhs = eval_sexp(se->elements->next, menv, &env, env);
   add_type(lhs);
-  if (lhs->ty->kind != TY_STRUCT) {
+  if (lhs->ty->kind != TY_STRUCT && lhs->ty->kind != TY_UNION) {
     error_tok(lhs->tok, "not a struct");
   }
   Node* node = new_unary(ND_STRUCT_REF, lhs, se->tok);
   node->member = get_struct_member(lhs->ty, se->elements->next->next->tok);
   return node;
+}
+
+static Node* eval_defunion(Sexp* se, MEnv* menv, Env** newenv, Env* env) {
+  Token* tok = se->tok;
+  Sexp* se_tag = se->elements->next;
+  Sexp* members = se_tag->next;
+
+  char* name = strndup(se_tag->tok->loc, se_tag->tok->len);
+
+  // members
+  Member head = {};
+  Member* cur = &head;
+  int max_align = 1;
+  int max_size = 0;
+
+  while (members) {
+    Token* mem_tok = members->tok;
+    Type* ty = eval_type(members->next, menv, env);
+    Member* mem = new_member(mem_tok, ty);
+    mem->offset = 0;
+
+    members = members->next->next;
+    cur->next = mem;
+    cur = cur->next;
+    max_align = ty->align < max_align? max_align : ty->align;
+  }
+
+  Type* ty = new_union_type(max_size,  max_align, head.next);
+  Var* tag = new_var(name, ty);
+  *newenv = add_tag(env, tag);
+  return new_node(ND_DEFUNION, tok);
 }
 
 static Node* eval_defstruct(Sexp* se, MEnv* menv, Env** newenv, Env* env) {
@@ -434,6 +466,8 @@ static Node* eval_list(Sexp* se, MEnv* menv, Env** newenv, Env* env) {
     return eval_def(se, menv, newenv, env); 
   } else if (equal(se->elements->tok, "defstruct")) {
     return eval_defstruct(se, menv, newenv, env); 
+  } else if (equal(se->elements->tok, "defunion")) {
+    return eval_defunion(se, menv, newenv, env); 
   } else if (equal(se->elements->tok, "struct-ref")) {
     return eval_struct_ref(se, menv, env); 
   } else if (is_macro_primitive(se->elements->tok)) {

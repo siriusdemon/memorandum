@@ -190,6 +190,7 @@ Node* new_unary(NodeKind kind, Node* lhs, Token* tok);
 Member* new_member(Token* tok, Type* ty);
 Member* get_struct_member(Type* ty, Token* tok);
 Type* new_struct_type(int size, int align, Member* members);
+Type* new_union_type(int size, int align, Member* members);
 Node* register_str(Node* str_node);
 Var* new_lvar(char* name, Type *ty);
 Var* new_var(char* name, Type* ty);
