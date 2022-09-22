@@ -12,6 +12,8 @@
     X int
     Y My)
 
+
+
 (def main() -> int
     (ASSERT 42 42)
     (ASSERT 12 (do
@@ -34,5 +36,26 @@
                 (let a : U2)
                 (set a.X 100)
                 a.Y.gender))
+    (ASSERT 184 (do
+                (defstruct Color R int G int B int)
+                (let a : Color)
+                (set a.R 100)
+                (set a.B 42)
+                (set a.G 42)
+                (let b : Color a)
+                (+ b.R b.G b.B)))
+    (ASSERT 101 (do
+                (defstruct S2 age int gender int)
+                (defunion U2 X int Y S2)
+                (let a :U2) 
+                (set a.X 1)
+                (set a.Y.gender 100)
+                (let b :U2 a)
+                (+ b.Y.age b.Y.gender)))
+    (ASSERT 26 (do
+                (defstruct S A int B int C int D int)
+                (let S :S)
+                (set S.A 10)
+                (+ (sizeof S) S.A)))
     0
 )
