@@ -38,6 +38,7 @@ static Node* eval_str(Sexp* se, MEnv* menv, Env* env);
 static Node* eval_deftype(Sexp* se, MEnv* menv, Env** newenv, Env* env);
 static Type* eval_base_type(Sexp* se, MEnv* menv, Env* env);
 static Type* eval_type(Sexp* se, MEnv* menv, Env* env);
+static Type* eval_typeof(Sexp* se, MEnv* menv, Env* env);
 
 MEnv* new_menv() {
   MEnv* menv = calloc(1, sizeof(MEnv));
@@ -547,10 +548,19 @@ static Type* eval_array_type(Sexp* se, MEnv* menv, Env* env) {
   return eval_array_type_helper(se->elements, menv, env);
 }
 
+static Type* eval_typeof(Sexp* se, MEnv* menv, Env* env) {
+  Node* node = eval_sexp(se->elements->next, menv, &env, env);
+  add_type(node);
+  return node->ty;
+}
+
 static Type* eval_type(Sexp* se, MEnv* menv, Env* env) {
   if (se->kind == SE_LIST) {
     if (equal(se->elements->tok, "pointer")) {
       return eval_pointer_type(se, menv, env);
+    }
+    if (equal(se->elements->tok, "typeof")) {
+      return eval_typeof(se, menv, env);
     }
     if (se->elements->tok->kind == TK_NUM) {
       return eval_array_type(se, menv, env);

@@ -15,5 +15,12 @@
     (ASSERT 12 (do (deftype X short) 
                     (let X :X 10)
                     (+ X (sizeof X))))
+    (ASSERT 20 (* 5 (sizeof (typeof 1))))
+    (ASSERT 36 (do   
+                (defstruct X gender int age int)
+                (let x :X)
+                (let y :(typeof x))
+                (set y.age 20)
+                (+ (sizeof X) (sizeof (typeof y)) y.age)))
     0
 )
