@@ -57,5 +57,11 @@
                 (let S :S)
                 (set S.A 10)
                 (+ (sizeof S) S.A)))
+    (ASSERT 217 (do
+                (defstruct Life money long health int)
+                (let my-life :Life)
+                (set my-life.money (* 10 20))
+                (set my-life.health 1)
+                (+ my-life.money my-life.health (sizeof Life))))  
     0
 )

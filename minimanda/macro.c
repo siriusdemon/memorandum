@@ -493,8 +493,14 @@ bool is_array(Token* tok) {
 }
 
 static Type* eval_base_type(Sexp* se, MEnv* menv, Env* env) {
+  if (equal(se->tok, "long")) {
+    return ty_long;
+  }
   if (equal(se->tok, "int")) {
     return ty_int;
+  }
+  if (equal(se->tok, "short")) {
+    return ty_short;
   }
   if (equal(se->tok, "char")) {
     return ty_char;

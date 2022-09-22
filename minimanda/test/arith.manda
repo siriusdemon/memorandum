@@ -19,5 +19,11 @@
   (ASSERT 0 (<= 2 1))
   (ASSERT 1 (>= 2 1))
   (ASSERT 1 (= 1 1))
+  (ASSERT 8 (sizeof long))
+  (ASSERT 4 (sizeof int))
+  (ASSERT 2 (sizeof short))
+  (ASSERT 1 (sizeof char))
+  (ASSERT 1 (do (let c: char 1) c))
+  (ASSERT 100000000 (* 10000 10000))
   0
 )
