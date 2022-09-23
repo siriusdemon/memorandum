@@ -411,6 +411,10 @@ static Node* eval_primitive(Sexp* se, MEnv* menv, Env* env) {
   Match("not", eval_unary(se, menv, env, ND_NOT))
   Match("and", eval_binary(se, menv, env, ND_AND, true, false))
   Match("or", eval_binary(se, menv, env, ND_OR, true, false))
+  Match("bitnot", eval_unary(se, menv, env, ND_BITNOT))
+  Match("bitand", eval_binary(se, menv, env, ND_BITAND, true, false))
+  Match("bitor", eval_binary(se, menv, env, ND_BITOR, true, false))
+  Match("bitxor", eval_binary(se, menv, env, ND_BITXOR, false, false))
   Match("sizeof", eval_sizeof(se, menv, env))
   Match("cast", eval_cast(se, menv, env))
 #undef Match

@@ -27,5 +27,13 @@
   (ASSERT 100000000 (* 10000 10000))
   (ASSERT 42 (+ #x10 #o17 #b1000 #b11))
   (ASSERT 4 #b100)
+  (ASSERT 4 (bitxor #b010 #b110))
+  (ASSERT 0 (bitand #b1111 #b111 0))
+  (ASSERT 11 (bitor #b1010 #b0010 #b10 #b1))
+  (ASSERT 1 (bitand #b1111 #b111 #b11 #b1))
+  (ASSERT 1 (do (let age :int 20) 
+                (< 0 age 100)))
+  (ASSERT 1 (> 10 2 1 0))
+  (ASSERT 0 (< 10 2 1 0))
   0
 )
