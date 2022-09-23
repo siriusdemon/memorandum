@@ -35,6 +35,7 @@ static Node* eval_unary(Sexp* se, MEnv* menv, Env* env, NodeKind kind);
 static Node* eval_sizeof(Sexp* se, MEnv* menv, Env* env);
 static Node* eval_num(Sexp* se);
 static Node* eval_str(Sexp* se, MEnv* menv, Env* env);
+static Node* eval_cast(Sexp* se, MEnv* menv, Env* env);
 static Node* eval_deftype(Sexp* se, MEnv* menv, Env** newenv, Env* env);
 static Type* eval_base_type(Sexp* se, MEnv* menv, Env* env);
 static Type* eval_type(Sexp* se, MEnv* menv, Env* env);
@@ -408,12 +409,23 @@ static Node* eval_primitive(Sexp* se, MEnv* menv, Env* env) {
   Match("addr", eval_unary(se, menv, env, ND_ADDR))
   Match("deref", eval_unary(se, menv, env, ND_DEREF))
   Match("sizeof", eval_sizeof(se, menv, env))
+  Match("cast", eval_cast(se, menv, env))
 #undef Match
 }
 
 static Node* eval_sizeof(Sexp* se, MEnv* menv, Env* env) {
   Type* ty = eval_type(se->elements->next, menv, env);
   return new_num(ty->size, se->elements->next->tok);
+}
+
+static Node* eval_cast(Sexp* se, MEnv* menv, Env* env) {
+  Token* tok = se->tok;
+  Node* lhs = eval_sexp(se->elements->next, menv, &env, env);
+  add_type(lhs);
+  Type* ty = eval_type(se->elements->next->next, menv, env);
+  Node* node = new_unary(ND_CAST, lhs, tok);
+  node->ty = ty;
+  return node;
 }
 
 static Node* eval_unary(Sexp* se, MEnv* menv, Env* env, NodeKind kind) {

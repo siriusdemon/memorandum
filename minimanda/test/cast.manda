@@ -1,0 +1,8 @@
+(defmacro ASSERT (actual expected)
+  (assert actual expected (str expected)))
+
+
+(def main() -> int
+    (ASSERT 0 (do (let x :int 256) (cast x char)))
+    0
+)
