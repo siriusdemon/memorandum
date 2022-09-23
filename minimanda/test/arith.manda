@@ -25,5 +25,7 @@
   (ASSERT 1 (sizeof char))
   (ASSERT 1 (do (let c: char 1) c))
   (ASSERT 100000000 (* 10000 10000))
+  (ASSERT 42 (+ #x10 #o17 #b1000 #b11))
+  (ASSERT 4 #b100)
   0
 )
