@@ -399,6 +399,7 @@ static Node* eval_primitive(Sexp* se, MEnv* menv, Env* env) {
   Match("-", eval_binary(se, menv, env, ND_SUB, true, false))
   Match("*", eval_binary(se, menv, env, ND_MUL, true, false))
   Match("/", eval_binary(se, menv, env, ND_DIV, true, false))
+  Match("mod", eval_binary(se, menv, env, ND_MOD, false, false))
   Match("=", eval_binary(se, menv, env, ND_EQ, false, true))
   Match(">", eval_binary(se, menv, env, ND_GT, false, true))
   Match("<", eval_binary(se, menv, env, ND_LT, false, true))
@@ -415,6 +416,9 @@ static Node* eval_primitive(Sexp* se, MEnv* menv, Env* env) {
   Match("bitand", eval_binary(se, menv, env, ND_BITAND, true, false))
   Match("bitor", eval_binary(se, menv, env, ND_BITOR, true, false))
   Match("bitxor", eval_binary(se, menv, env, ND_BITXOR, false, false))
+  Match("sra", eval_binary(se, menv, env, ND_SRA, false, false))
+  Match("srl", eval_binary(se, menv, env, ND_SRL, false, false))
+  Match("sll", eval_binary(se, menv, env, ND_SLL, false, false))
   Match("sizeof", eval_sizeof(se, menv, env))
   Match("cast", eval_cast(se, menv, env))
 #undef Match
