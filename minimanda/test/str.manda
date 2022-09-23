@@ -17,6 +17,11 @@
     (ASSERT 12 (iget "\f" 0))
     (ASSERT 13 (iget "\r" 0))
     (ASSERT 27 (iget "\e" 0))
-
-0)
+    (ASSERT 97 'a')
+    (ASSERT 98 'b')
+    (ASSERT 99 'c')
+    (ASSERT 65 'A')
+    (ASSERT 32 (iget " " 0))
+    0
+)
 
