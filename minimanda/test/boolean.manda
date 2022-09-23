@@ -5,5 +5,9 @@
 (def main() -> int
     (ASSERT 2 (do (let x :bool true) 
                   (+ (sizeof bool) (cast x bool))))
+    (ASSERT 0 (not true))
+    (ASSERT 1 (not false))
+    (ASSERT 0 (and true false true))
+    (ASSERT 1 (or false false true))
     0
 )

@@ -408,6 +408,9 @@ static Node* eval_primitive(Sexp* se, MEnv* menv, Env* env) {
   Match("iset", eval_triple(se, menv, env, ND_ISET))
   Match("addr", eval_unary(se, menv, env, ND_ADDR))
   Match("deref", eval_unary(se, menv, env, ND_DEREF))
+  Match("not", eval_unary(se, menv, env, ND_NOT))
+  Match("and", eval_binary(se, menv, env, ND_AND, true, false))
+  Match("or", eval_binary(se, menv, env, ND_OR, true, false))
   Match("sizeof", eval_sizeof(se, menv, env))
   Match("cast", eval_cast(se, menv, env))
 #undef Match
