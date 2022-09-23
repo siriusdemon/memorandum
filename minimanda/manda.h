@@ -175,6 +175,7 @@ Node* parse(Token*);
 Node* new_node(NodeKind kind, Token* tok);
 Node* new_num(int64_t val, Token* tok);
 Node* new_bool(bool val, Token* tok);
+Node* new_bool(bool val, Token* tok);
 Node* new_app(char* fn, Node* args, Token* tok);
 Node* new_var_node(Var* var, Token* tok);
 Node* new_str_node(char* str, Token* tok);

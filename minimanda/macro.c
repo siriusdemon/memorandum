@@ -465,6 +465,11 @@ static Node* eval_num(Sexp* se) {
   return node;
 }
 
+static Node* eval_bool(Sexp* se) {
+  Node* node = new_bool(se->tok->val, se->tok);
+  return node;
+}
+
 static Node* eval_list(Sexp* se, MEnv* menv, Env** newenv, Env* env) {
   if (equal(se->elements->tok, "do")) {
     return eval_do(se, menv, env); 
@@ -532,6 +537,9 @@ static Type* eval_base_type(Sexp* se, MEnv* menv, Env* env) {
   if (equal(se->tok, "char")) {
     return ty_char;
   }
+  if (equal(se->tok, "bool")) {
+    return ty_bool;
+  }
   Type* ty = lookup_tag(env, se->tok);
   if (ty) {
     return ty;
@@ -590,6 +598,16 @@ static Node* eval_sexp(Sexp* se, MEnv* menv, Env** newenv, Env* env) {
   Token* tok = se->tok;
   if (tok->kind == TK_NUM) {
     return eval_num(se);
+  }
+
+  if (equal(tok, "true")) {
+    tok->val = TRUE;
+    return eval_bool(se);
+  }
+
+  if (equal(tok, "false")) {
+    tok->val = FALSE;
+    return eval_bool(se);
   }
 
   if (tok->kind == TK_IDENT) {
