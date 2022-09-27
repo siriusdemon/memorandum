@@ -249,7 +249,7 @@ static Node* eval_let(Sexp* se, MEnv* menv,  Env** newenv, Env* env, Var* (*allo
   Node* rhs = NULL;
   if (se_val) {
     rhs = eval_sexp(se_val, menv, &env, env);
-    if (rhs->kind == ND_ARRAY_LITERAL) {
+    if (rhs->kind == ND_ARRAY_LITERAL || rhs->kind == ND_STR) {
       Node* node = new_let(lhs, NULL, tok);
       node->next = literal_expand(lhs, rhs, tok);
       return node;
