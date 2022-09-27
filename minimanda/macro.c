@@ -22,6 +22,7 @@ static Node* eval_def(Sexp* se, MEnv* menv, Env** newenv, Env* env);
 static Node* eval_defstruct(Sexp* se, MEnv* menv, Env** newenv, Env* env);
 static Node* eval_defunion(Sexp* se, MEnv* menv, Env** newenv, Env* env);
 static Node* eval_struct_ref(Sexp* se, MEnv* menv, Env* env);
+static Node* eval_array_shortcut(Sexp* se, MEnv* menv, Env* env);
 static Node* eval_let(Sexp* se, MEnv* menv, Env** newenv, Env* env, Var* (*alloc_var)(char* name, Type* ty));
 static Node* eval_set(Sexp* se, MEnv* menv, Env* env);
 static Node* eval_while(Sexp* se, MEnv* menv, Env* env);
@@ -40,6 +41,9 @@ static Node* eval_deftype(Sexp* se, MEnv* menv, Env** newenv, Env* env);
 static Type* eval_base_type(Sexp* se, MEnv* menv, Env* env);
 static Type* eval_type(Sexp* se, MEnv* menv, Env* env);
 static Type* eval_typeof(Sexp* se, MEnv* menv, Env* env);
+
+Sexp* parse_sexp_list(Token** rest, Token* tok);
+Sexp* parse_sexp_symbol(Token** rest, Token* tok);
 
 MEnv* new_menv() {
   MEnv* menv = calloc(1, sizeof(MEnv));
@@ -193,8 +197,7 @@ static Node* eval_do(Sexp* se, MEnv* menv, Env* env) {
   Node* cur = &head;
   Sexp* secur = se->elements->next;
   while (secur) {
-    cur->next = eval_sexp(secur, menv, &env, env);
-    cur = cur->next;
+    cur = merge_nodes(cur, eval_sexp(secur, menv, &env, env));
     secur = secur->next;
   }
   Node* node = new_do(head.next, tok);
@@ -208,8 +211,7 @@ static Node* eval_while(Sexp* se, MEnv* menv, Env* env) {
   Node* cur = &head;
   Sexp* rest = se->elements->next->next;
   while (rest) {
-    cur->next = eval_sexp(rest, menv, &env, env);
-    cur = cur->next;
+    cur = merge_nodes(cur, eval_sexp(rest, menv, &env, env));
     rest = rest->next;
   }
   Node* node = new_while(cond, head.next, tok);
@@ -242,6 +244,11 @@ static Node* eval_let(Sexp* se, MEnv* menv,  Env** newenv, Env* env, Var* (*allo
   Node* rhs = NULL;
   if (se_val) {
     rhs = eval_sexp(se_val, menv, &env, env);
+    if (rhs->kind == ND_ARRAY_LITERAL) {
+      Node* node = new_let(lhs, NULL, tok);
+      node->next = literal_expand(lhs, rhs, tok);
+      return node;
+    }
   }
 
   Node* node = new_let(lhs, rhs, tok);
@@ -265,6 +272,37 @@ static Node* eval_macro_primitive(Sexp* se, MEnv* menv, Env* env) {
     return eval_macro_str(se, menv, env); 
   }
   error_tok(se->tok, "unsupported yet!");
+}
+
+static Node* eval_array_shortcut(Sexp* se, MEnv* menv, Env* env) {
+  Token* tok = se->tok;  
+  Node head = {}; 
+  Node* cur = &head;
+  Type* base = NULL;
+  int len = 0;
+
+  set_array_ctx();
+
+  Sexp* se_cur = se->elements->next;
+  while (se_cur) {
+    cur->next = eval_sexp(se_cur, menv, &env, env);
+    cur = cur->next;
+    add_type(cur);
+    if (!base) {
+      base = cur->ty;
+    } else if (base->kind != cur->ty->kind ) {
+      error_tok(tok, "type mismatch!");
+    }
+    se_cur = se_cur->next;
+    len++;
+  }
+
+  unset_array_ctx();
+
+  Node* node = new_node(ND_ARRAY_LITERAL, tok);
+  node->elements = head.next;
+  node->ty = array_of(base, len);
+  return node;
 }
 
 static Node* eval_struct_ref(Sexp* se, MEnv* menv, Env* env) {
@@ -368,8 +406,7 @@ static Node* eval_def(Sexp* se, MEnv* menv, Env** newenv, Env* env) {
   Node head_body = {};
   cur = &head_body;
   while (se_body) {
-    cur->next = eval_sexp(se_body, menv, &env, env);
-    cur = cur->next;
+    cur = merge_nodes(cur, eval_sexp(se_body, menv, &env, env));
     se_body = se_body->next;
   }
   return new_function(fn, ret_ty, head_args.next, head_body.next, tok);
@@ -500,6 +537,8 @@ static Node* eval_list(Sexp* se, MEnv* menv, Env** newenv, Env* env) {
     return eval_defunion(se, menv, newenv, env); 
   } else if (equal(se->elements->tok, "struct-ref")) {
     return eval_struct_ref(se, menv, env); 
+  } else if (equal(se->elements->tok, "make-array")) {
+    return eval_array_shortcut(se, menv, env); 
   } else if (equal(se->elements->tok, "deftype")) {
     return eval_deftype(se, menv, newenv, env); 
   } else if (is_macro_primitive(se->elements->tok)) {
@@ -674,6 +713,26 @@ Sexp* parse_sexp(Token** rest, Token* tok) {
   }
 }
 
+Sexp* parse_sexp_array_literal(Token** rest, Token* tok) {
+  Sexp* list = new_sexp(SE_LIST, tok);
+  Sexp* cur = new_symbol_with_token("make-array");
+  list->elements = cur;
+  char* pair = get_pair(&tok, tok->next->next);
+  while (!stop_parse(tok)) {
+    cur->next = parse_sexp(&tok, tok);
+    cur = cur->next; 
+  }
+  *rest = skip(tok, pair);
+  return list;
+}
+
+Sexp* parse_sexp_hash_literal(Token** rest, Token* tok) {
+  if (equal(tok->next, "a")) {
+    return parse_sexp_array_literal(rest, tok);
+  }
+  error_tok(tok, "unsupported hash literal");
+}
+
 Sexp* parse_sexp_symbol(Token** rest, Token* tok) {
   if (equal(tok, "&")) {
     Sexp* list = new_sexp(SE_LIST, tok);
@@ -681,6 +740,10 @@ Sexp* parse_sexp_symbol(Token** rest, Token* tok) {
     list->elements->next = parse_sexp(&tok, tok->next);
     *rest = tok;
     return list;
+  }
+
+  if (equal(tok, "#")) {
+    return parse_sexp_hash_literal(rest, tok);
   }
 
   if (tok->kind == TK_IDENT) {

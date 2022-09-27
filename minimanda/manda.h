@@ -188,6 +188,8 @@ Node* new_function(char* fn, Type* ret_ty, Node* args, Node* body, Token* tok);
 Node* new_triple(NodeKind kind, Node* lhs, Node* mhs, Node* rhs, Token* tok);
 Node* new_binary(NodeKind kind, Node* lhs, Node* rhs, Token* tok);
 Node* new_unary(NodeKind kind, Node* lhs, Token* tok);
+Node* literal_expand(Node* lhs, Node* rhs, Token* tok);
+Node* merge_nodes(Node* cur, Node* list);
 Member* new_member(Token* tok, Type* ty);
 Member* get_struct_member(Type* ty, Token* tok);
 Type* new_struct_type(int size, int align, Member* members);
