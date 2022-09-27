@@ -10,21 +10,21 @@
                    (iget a 0 1)
                    (iget a 1 0)
                    (iget a 1 1))))
-    ;(ASSERT 5 (do
-    ;            (let c :[2 2 int])
-    ;            (set (iget c 0) #a[1 2])
-    ;            (set (iget c 1) #a[3 4])
-    ;            (+ (iget c 0 1)
-    ;                (iget c 1 0))))
-    ;(ASSERT 5 (do
-    ;            (let c :[2 2 int])
-    ;            (set (iget c 0) #a[1 2])
-    ;            (set (iget c 1) #a[3 4])
-    ;            (+ (iget (iget c 0) 1)
-    ;                (iget (iget c 1) 0))))
-    ;(ASSERT 42 (do
-    ;          (let a :[2 int] #a[22 20])
-    ;          (let b :[1 int] #a[0])
-    ;          (+ (iget a 0) (iget a 1) (iget b 0))))
+    (ASSERT 5 (do
+                (let c :[2 2 int])
+                (set (iget c 0) #a[1 2])
+                (set (iget c 1) #a[3 4])
+                (+ (iget c 0 1)
+                    (iget c 1 0))))
+    (ASSERT 5 (do
+                (let c :[2 2 int])
+                (set (iget c 0) #a[1 2])
+                (set (iget c 1) #a[3 4])
+                (+ (iget (iget c 0) 1)
+                    (iget (iget c 1) 0))))
+    (ASSERT 42 (do
+              (let a :[2 int] #a[22 20])
+              (let b :[1 int] #a[0])
+              (+ (iget a 0) (iget a 1) (iget b 0))))
     0
 )

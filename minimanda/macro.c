@@ -222,6 +222,11 @@ static Node* eval_set(Sexp* se, MEnv* menv, Env* env) {
   Token* tok = se->elements->tok;
   Node* lhs = eval_sexp(se->elements->next, menv, &env, env);
   Node* rhs = eval_sexp(se->elements->next->next, menv, &env, env);
+  if (rhs->kind == ND_ARRAY_LITERAL) {
+    Node* node = new_let(lhs, NULL, tok);
+    node->next = literal_expand(lhs, rhs, tok);
+    return node;
+  }
   Node* node = new_set(lhs, rhs, tok);
   return node;
 }
